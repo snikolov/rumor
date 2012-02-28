@@ -11,7 +11,7 @@ import colorsys
 TIME_OFFSET_SECONDS = -5 * 60 * 60
 WINDOW = 1 * 60 * 60
 
-def setup_rumor(statuses_path, edges_path, p_sample=0.01):
+def setup_rumor(statuses_path, edges_path, p_sample=0.01, window=WINDOW):
   # TODO: Look for canonically-named pickles. Load them if they exist
   # Parse edges and statuses.
   edges = parse_edges_sampled(edges_path,p_sample)    
@@ -21,7 +21,7 @@ def setup_rumor(statuses_path, edges_path, p_sample=0.01):
   edge_nodes = set(edge_nodes)
   statuses = parse_statuses_edge_sampled(statuses_path, edge_nodes)
   # Compute rumor edges and sort them by timestamp.
-  rumor_edges = compute_rumor_edges(statuses, edges)
+  rumor_edges = compute_rumor_edges(statuses, edges, window)
   rumor_edges.sort(timestamped_edge_comparator)
   return { 'statuses':statuses, 'edges': rumor_edges }
 
@@ -121,8 +121,8 @@ def parse_statuses_edge_sampled(path, sample_edge_nodes):
   return statuses
 
 # An edge (v,u) is a rumor edge iff (u,v) is in edges (i.e. u follows v)
-# and if t_u - t_v <= WINDOW 
-def compute_rumor_edges(statuses, edges):
+# and if t_u - t_v <= window
+def compute_rumor_edges(statuses, edges, window):
   rumor_edges = []
   for edge in edges:
     u = edge[0]
@@ -141,7 +141,7 @@ def compute_rumor_edges(statuses, edges):
       t_u = datetime_to_epoch_seconds(status_u[3])
     except ValueError:
       print "Can't convert one or both of these to a timestamp:\n", status_v[3], '\n', status_u[3]
-    if t_u - t_v <= WINDOW:
+    if t_u - t_v <= window:
       rumor_edges.append((v, u, t_u))
   return rumor_edges
 
