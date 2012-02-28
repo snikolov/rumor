@@ -11,7 +11,7 @@ import colorsys
 TIME_OFFSET_SECONDS = -5 * 60 * 60
 WINDOW = 1 * 60 * 60
 
-def setup_rumor(statuses_path, edges_path, p_sample=0.01, window=WINDOW):
+def setup_rumor(statuses_path, edges_path, trend_onset_path, p_sample=0.01, window=WINDOW):
   # TODO: Look for canonically-named pickles. Load them if they exist
   # Parse edges and statuses.
   edges = parse_edges_sampled(edges_path,p_sample)    
@@ -23,7 +23,13 @@ def setup_rumor(statuses_path, edges_path, p_sample=0.01, window=WINDOW):
   # Compute rumor edges and sort them by timestamp.
   rumor_edges = compute_rumor_edges(statuses, edges, window)
   rumor_edges.sort(timestamped_edge_comparator)
-  return { 'statuses':statuses, 'edges': rumor_edges }
+  trend_onset = parse_trend_onset(trend_onset_path)
+  return { 'statuses':statuses, 'edges':rumor_edges, 'trend_onset':trend_onset }
+
+def parse_trend_onset(path):
+  f = open(path, 'r')
+  line = f.readline()
+  return int(line)
 
 def parse_edges_sampled(path, p):
   files = os.listdir(path)
@@ -147,12 +153,12 @@ def compute_rumor_edges(statuses, edges, window):
 
 # Take statuses and edges sorted by timestamp and simulate the rumor
 # forward in time.
-def simulate(statuses, rumor_edges, step_mode = 'index', step = 1000, limit = 10000):
+def simulate(statuses, rumor_edges, trend_onset, step_mode = 'time', step = 10, limit = 2400):
   components = {}
 
   # Figure
   plt.figure()
-
+  plt.axvline(x=trend_onset, ymin=0, ymax=10000, hold='on')
   # Time series
   node_to_component_id = {}
   max_sizes = []
@@ -162,11 +168,12 @@ def simulate(statuses, rumor_edges, step_mode = 'index', step = 1000, limit = 10
   max_component_ratios = []
   timestamps = []
 
+  min_time = min([ edge[2] for edge in rumor_edges ])
   if step_mode == 'time':
-    min_time = min([ edge[2] for edge in rumor_edges ])
     next_time = min_time
   max_pos = limit
 
+  print 'time\t\teid\t\tpos\t\t|C_max|\t\tN(C)\t\ttime-trend_onset'
   for eid, edge in enumerate(rumor_edges):
     # print edge
     # print components
@@ -228,7 +235,7 @@ def simulate(statuses, rumor_edges, step_mode = 'index', step = 1000, limit = 10
       component_sizes.append(len(members))
       # print 'component ', cid, ' size: ', len(members)  
       # raw_input('-------------------')
-    print eid, '\t', max(component_sizes), '\t', len(components)
+    print edge[2] - min_time, '\t\t', eid, '\t\t', pos, '/', limit, '\t\t', max(component_sizes), '\t\t', len(components), '\t\t', edge[2] - trend_onset
 
     # Desc sort of component sizes
     component_sizes.sort()
@@ -275,7 +282,8 @@ def simulate(statuses, rumor_edges, step_mode = 'index', step = 1000, limit = 10
 
     # plt.hist(component_sizes, np.linspace(0.5, 15.5, 15))
     # plt.plot(np.cumsum(np.histogram(component_sizes, bins = np.linspace(0.5, 15.5, 15))[0]), hold = 'on')
-    plt.pause(0.001)
+    if not eid % 1:#10*step:
+      plt.pause(0.001)
   plt.show()
   return components
 
