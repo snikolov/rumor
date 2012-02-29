@@ -282,8 +282,8 @@ def simulate(statuses, rumor_edges, trend_onset, step_mode = 'time', step = 10, 
 
     # plt.hist(component_sizes, np.linspace(0.5, 15.5, 15))
     # plt.plot(np.cumsum(np.histogram(component_sizes, bins = np.linspace(0.5, 15.5, 15))[0]), hold = 'on')
-    if not eid % 1:#10*step:
-      plt.pause(0.001)
+    if not eid % 15*step:
+      pass#plt.pause(0.001)
   plt.show()
   return components
 
