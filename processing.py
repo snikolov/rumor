@@ -23,8 +23,12 @@ def compute_rumor_edges(statuses, edges, window):
       t_u = util.datetime_to_epoch_seconds(status_u[3])
     except ValueError:
       print "Can't convert one or both of these to a timestamp:\n", status_v[3], '\n', status_u[3]
-    if t_u - t_v <= window:
+    t_diff = t_u - t_v
+    if t_diff <= window and t_diff > 0:
       rumor_edges.append((v, u, t_u))
+    elif -t_diff <= window and t_diff < 0:
+      rumor_edges.append((u, v, t_v))
+
   rumor_edges.sort(util.timestamped_edge_comparator)
   return rumor_edges
 
@@ -35,13 +39,10 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
   rumor_statuses = rumor['statuses']
   trend_onset = rumor['trend_onset']
 
-  components = {}
-
   # Figure
   plt.figure()
 
   # Time series
-  node_to_component_id = {}
   max_sizes = []
   total_sizes = []
   component_nums = []
@@ -55,6 +56,12 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
   max_pos = limit
 
   print 'time\t\teid\t\tpos\t\t|C_max|\t\tN(C)\t\ttime-trend_onset'
+
+  components = {}
+  node_to_component_id = {}
+
+  spikeset = set()
+
   for eid, edge in enumerate(rumor_edges):
     # print edge
     # print components
@@ -94,6 +101,15 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
           node_to_component_id[member] = c1
         components.pop(c0)
     
+    # Pause when you have some number of repeat statuses in a row 
+    # (meaning that lots of edges that terminate in that status suddenly got created)
+    repeat_num = 50
+    status_id = rumor_statuses[rumor_edges[eid][1]][0]
+    if eid > repeat_num and last_k_statuses_equal(status_id, rumor_statuses, rumor_edges, eid, repeat_num) and status_id not in spikeset:
+      print (rumor_statuses[rumor_edges[eid][0]], rumor_statuses[rumor_edges[eid][1]])
+      spikeset.add(status_id)
+      raw_input()
+
     if step_mode == 'index':
       pos = eid
     elif step_mode == 'time':
@@ -122,7 +138,7 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       time_after_onset = edge[2] - trend_onset
 
     print edge[2] - min_time, '\t\t', eid, '\t\t', pos, '/', limit, '\t\t', max(component_sizes), '\t\t', len(components), '\t\t', time_after_onset
-
+    
     # Desc sort of component sizes
     component_sizes.sort()
     component_sizes.reverse()
@@ -177,3 +193,9 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       pass#plt.pause(0.001)
   plt.show()
   return components
+
+def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges, curr_idx, k):
+  for i in xrange(k):
+    if rumor_statuses[rumor_edges[curr_idx-i][1]][0] is not equals_val:
+      return False
+  return True
