@@ -20,7 +20,7 @@ def parse_edges_sampled(path, p):
   
   # Determine the earliest time
   for fi, file in enumerate(files):
-    if not re.match('part-.-00000',file):
+    if not re.match('part-.-[0-9]{5}',file):
       print 'Filename', file, 'not valid data'
       continue
     if os.path.isdir(file):

@@ -29,6 +29,7 @@ def setup_rumor(path, p_sample=1, rumor_window=WINDOW):
     edges_path, p_sample, tmin, tmax)
   """
   # Compute rumor edges and sort them by timestamp.
-  rumor_edges = processing.compute_rumor_edges(statuses, edges, rumor_window)
+  #rumor_edges = processing.compute_rumor_edges(statuses, edges, rumor_window)
+  rumor_edges = processing.compute_rumor_tree_edges(statuses, edges, rumor_window)
   trend_onset = parsing.parse_trend_onset(trend_onset_path)
   return { 'statuses':statuses, 'edges':rumor_edges, 'trend_onset':trend_onset }

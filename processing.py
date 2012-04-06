@@ -2,6 +2,51 @@ import numpy as np
 import matplotlib.pyplot as plt
 import util
 
+def compute_rumor_tree_edges(statuses, edges, window):
+  rumor_edges=[]
+  parent={}
+  for edge in edges:
+    u = edge[0]
+    v = edge[1]
+    status_v = statuses[v]
+    status_u = statuses[u]
+    if status_v == None or status_u == None:
+      continue
+    if len(status_v) < 4 or len(status_u) < 4:
+      continue
+    if status_v[3] == '' or status_u[3] == '':
+      continue
+    # Compare timestamps
+    try:
+      t_v = util.datetime_to_epoch_seconds(status_v[3])
+      t_u = util.datetime_to_epoch_seconds(status_u[3])
+    except ValueError:
+      print "Can't convert one or both of these to a timestamp:\n", status_v[3], '\n', status_u[3]
+    t_diff = t_u - t_v
+    if t_diff <= window and t_diff > 0:
+      if u not in parent:
+        parent[u] = (v, t_v, t_u)
+      else:
+        parent_u = parent[u]
+        # Replace parent if there is a more recent parent
+        if t_v > parent_u[1]:
+          parent[u] = (v, t_v, t_u)
+    elif -t_diff <= window and t_diff < 0:
+      if v not in parent:
+        parent[v] = (u, t_u, t_v)
+      else:
+        parent_v = parent[v]
+        # Replace parent if there is a more recent parent
+        if t_u > parent_v[1]:
+          parent[v] = (u, t_u, t_v)
+
+  rumor_edges = [ (parent[a][0],a,parent[a][2]) for a in parent ]
+  for r in rumor_edges:
+    print r
+  rumor_edges.sort(util.timestamped_edge_comparator)
+  return rumor_edges
+
+
 # An edge (v,u) is a rumor edge iff (u,v) is in edges (i.e. u follows
 # v) and if t_u - t_v <= window
 def compute_rumor_edges(statuses, edges, window):
@@ -22,7 +67,8 @@ def compute_rumor_edges(statuses, edges, window):
       t_v = util.datetime_to_epoch_seconds(status_v[3])
       t_u = util.datetime_to_epoch_seconds(status_u[3])
     except ValueError:
-      print "Can't convert one or both of these to a timestamp:\n", status_v[3], '\n', status_u[3]
+      print "Can't convert one or both of these to a timestamp:\n", \
+        status_v[3], '\n', status_u[3]
     t_diff = t_u - t_v
     if t_diff <= window and t_diff > 0:
       rumor_edges.append((v, u, t_u))
@@ -60,6 +106,11 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
   components = {}
   node_to_component_id = {}
 
+  # Set to keep track of statuses that gain many inbound edges at the same
+  # time. This happens when a user follows lots of people that have mentioned
+  # the topic, then tweets about the topic gets all of those followees as
+  # parents, causing a sharp spike in the component growth
+
   # spikeset = set()
 
   for eid, edge in enumerate(rumor_edges):
@@ -67,7 +118,8 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
     # print components
     # print node_to_component_id
     
-    if edge[0] not in node_to_component_id and edge[1] not in node_to_component_id:
+    if edge[0] not in node_to_component_id and edge[1] not in \
+        node_to_component_id:
       # Create new component with id edge[0] (i.e. first node belonging to that
       #  component)
       component_id = edge[0]
@@ -102,13 +154,16 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
           node_to_component_id[member] = c1
         components.pop(c0)
     
+    """
     # Pause when you have some number of repeat statuses in a row (meaning that
     # lots of edges that terminate in that status suddenly got created)
-    # repeat_num = 50 status_id = rumor_statuses[rumor_edges[eid][1]][0] if eid
-    # > repeat_num and last_k_statuses_equal(status_id, rumor_statuses,
-    # rumor_edges, eid, repeat_num) and status_id not in spikeset: print
-    # (rumor_statuses[rumor_edges[eid][0]], rumor_statuses[rumor_edges[eid][1]])
-    # spikeset.add(status_id) raw_input()
+    repeat_num = 2
+    status_id = rumor_statuses[rumor_edges[eid][1]][0]
+    if eid > repeat_num and last_k_statuses_equal(status_id, rumor_statuses,rumor_edges, eid, repeat_num) and status_id not in spikeset:
+      print (rumor_statuses[rumor_edges[eid][0]], rumor_statuses[rumor_edges[eid][1]])
+      spikeset.add(status_id)
+      raw_input()
+    """
 
     if step_mode == 'index':
       pos = eid
