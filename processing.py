@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import util
 
-# An edge (v,u) is a rumor edge iff (u,v) is in edges (i.e. u follows v)
-# and if t_u - t_v <= window
+# An edge (v,u) is a rumor edge iff (u,v) is in edges (i.e. u follows
+# v) and if t_u - t_v <= window
 def compute_rumor_edges(statuses, edges, window):
   rumor_edges = []
   for edge in edges:
@@ -60,7 +60,7 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
   components = {}
   node_to_component_id = {}
 
-  spikeset = set()
+  # spikeset = set()
 
   for eid, edge in enumerate(rumor_edges):
     # print edge
@@ -68,10 +68,11 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
     # print node_to_component_id
     
     if edge[0] not in node_to_component_id and edge[1] not in node_to_component_id:
-      # Create new component with id edge[0] 
-      #  (i.e. first node belonging to that component)
+      # Create new component with id edge[0] (i.e. first node belonging to that
+      #  component)
       component_id = edge[0]
-      # print 'Creating new component ', component_id, ' from ', edge[0], ' and ', edge[1]
+      # print 'Creating new component ', component_id, ' from ', edge[0], ' and
+      # ', edge[1]
       members = set([edge[0], edge[1]])
       components[edge[0]] = members
       node_to_component_id[edge[0]] = component_id
@@ -94,21 +95,20 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       if c0 != c1:
         # Merge components.
         members = components[c1]
-        # print 'Merging\n', c0, ': ', components[c0], '\ninto\n', c1, ': ', components[c1], '\n'
-        # raw_input('')
+        # print 'Merging\n', c0, ': ', components[c0], '\ninto\n', c1, ': ',
+        # components[c1], '\n' raw_input('')
         for member in components[c0]:
           members.add(member)
           node_to_component_id[member] = c1
         components.pop(c0)
     
-    # Pause when you have some number of repeat statuses in a row 
-    # (meaning that lots of edges that terminate in that status suddenly got created)
-    repeat_num = 50
-    status_id = rumor_statuses[rumor_edges[eid][1]][0]
-    if eid > repeat_num and last_k_statuses_equal(status_id, rumor_statuses, rumor_edges, eid, repeat_num) and status_id not in spikeset:
-      print (rumor_statuses[rumor_edges[eid][0]], rumor_statuses[rumor_edges[eid][1]])
-      spikeset.add(status_id)
-      raw_input()
+    # Pause when you have some number of repeat statuses in a row (meaning that
+    # lots of edges that terminate in that status suddenly got created)
+    # repeat_num = 50 status_id = rumor_statuses[rumor_edges[eid][1]][0] if eid
+    # > repeat_num and last_k_statuses_equal(status_id, rumor_statuses,
+    # rumor_edges, eid, repeat_num) and status_id not in spikeset: print
+    # (rumor_statuses[rumor_edges[eid][0]], rumor_statuses[rumor_edges[eid][1]])
+    # spikeset.add(status_id) raw_input()
 
     if step_mode == 'index':
       pos = eid
@@ -124,7 +124,7 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       if edge[2] < next_time:
         continue
       else:
-        next_time += step
+        next_time = edge[2] + step
 
     component_sizes = []
     # raw_input('======================================================'
@@ -148,7 +148,9 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
     total_sizes.append(sum(component_sizes))
     component_nums.append(len(component_sizes))
     entropies.append(util.entropy(component_sizes))
-    timestamps.append((edge[2] - min_time) / (60 * 60))
+    if trend_onset is None:
+      trend_onset = 0
+    timestamps.append((edge[2] - trend_onset) / (60 * 60))
     max_component_ratios.append(float(max(component_sizes))/sum(component_sizes))
     shifted_ind = np.linspace(1, 1 + len(component_sizes), len(component_sizes))
 
@@ -188,7 +190,8 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       plt.xlabel('time (hours)')
 
     # plt.hist(component_sizes, np.linspace(0.5, 15.5, 15))
-    # plt.plot(np.cumsum(np.histogram(component_sizes, bins = np.linspace(0.5, 15.5, 15))[0]), hold = 'on')
+    # plt.plot(np.cumsum(np.histogram(component_sizes, bins = np.linspace(0.5,
+    # 15.5, 15))[0]), hold = 'on')
     if not eid % 15*step:
       pass#plt.pause(0.001)
   plt.show()
