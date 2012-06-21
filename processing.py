@@ -75,7 +75,7 @@ def compute_rumor_edges(statuses, edges, window):
     elif -t_diff <= window and t_diff < 0:
       rumor_edges.append((u, v, t_v))
 
-  rumor_edges.sort(util.timestamped_edge_comparator)
+  rumor_edges.sort(util.timestamped_edge_comparator,'descend')
   return rumor_edges
 
 # Take statuses and edges sorted by timestamp and simulate the rumor
@@ -105,6 +105,7 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
 
   components = {}
   node_to_component_id = {}
+  adj={}
 
   # Set to keep track of statuses that gain many inbound edges at the same
   # time. This happens when a user follows lots of people that have mentioned
@@ -117,7 +118,14 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
     # print edge
     # print components
     # print node_to_component_id
+
+    # Update adjacency list
+    if edge[0] in adj:
+      adj[edge[0]].append(edge[1])
+    else:
+      adj[edge[0]]=[edge[1]]
     
+    # Update components
     if edge[0] not in node_to_component_id and edge[1] not in \
         node_to_component_id:
       # Create new component with id edge[0] (i.e. first node belonging to that
@@ -193,7 +201,16 @@ def simulate(rumor, step_mode = 'time', step = 10, limit = 2400):
       time_after_onset = edge[2] - trend_onset
 
     print edge[2] - min_time, '\t\t', eid, '\t\t', pos, '/', limit, '\t\t', max(component_sizes), '\t\t', len(components), '\t\t', time_after_onset
-    
+    # Print largest adjacency list sizes.
+    neighbor_counts=[ len(adj[k]) for k in adj ]
+    sorted_idx=range(len(neighbor_counts))
+    sorted_idx.sort(lambda x, y: neighbor_counts[y] - neighbor_counts[x])
+    for itop in xrange(10):
+      if itop>=len(sorted_idx):
+        break
+      print adj.keys()[sorted_idx[itop]], ':', neighbor_counts[sorted_idx[itop]]
+    raw_input()
+
     # Desc sort of component sizes
     component_sizes.sort()
     component_sizes.reverse()
