@@ -3,6 +3,7 @@ import random
 import re
 import time
 import util
+from timeseries import *
 
 def parse_trend_onset(path):
   try:
@@ -177,3 +178,65 @@ def parse_statuses_edge_sampled(path, sample_edge_nodes):
           statuses[status_fields[1]] = tuple(status_fields)
       line = f.readline()
   return statuses
+
+def parse_timeseries(path):
+  files = os.listdir(path)
+  for file in files:
+    if not re.match('part-.-[0-9]{5}',file):
+      print 'Filename', file, 'not valid data. Skipping...'
+      continue
+    if os.path.isdir(file):
+      print 'File', file, 'is directory. Skipping...'
+      continue
+    f = open(os.path.join(path,file), 'r')
+    line = f.readline()
+    topic_info = {}
+    while line:
+      fields = line_to_fields(line)
+      if len(fields) != 6:
+        # print 'Bad line', line, '. Skipping...'
+        line = f.readline()
+        continue
+      if any([field is '' for field in fields]):
+        # print 'Bad line', line, '. Skipping...'
+        line = f.readline()
+        continue
+      topic = fields[0]
+      time = float(fields[1])
+      trend_start = float(fields[2])
+      trend_end = float(fields[3])
+      ts_value = float(fields[4])
+      if topic not in topic_info:
+        topic_info[topic] = {}
+        topic_info[topic]['ts_dict'] = {}
+      topic_info[topic]['ts_dict'][int(time)] = ts_value
+      topic_info[topic]['trend_start'] = trend_start
+      topic_info[topic]['trend_end'] = trend_end
+      line = f.readline()
+
+  all_times = sorted(list(set([ t for l in [ times.keys() for times in [ topic_info[topic]['ts_dict'] for topic in topic_info] ] for t in l])))
+  import matplotlib.pyplot as plt
+
+  # Hardcode timestep for now
+  tstep = 300000
+  
+  # TODO: return parsed results. Then have a different thing for plotting.
+  timeseries = {}
+  for ti, topic in enumerate(topic_info):
+    timeseries[topic] = Timeseries(ts_dict = topic_info[topic]['ts_dict'], 
+                                   tmin = min(all_times),
+                                   tmax = max(all_times) + tstep,
+                                   tstep = tstep)
+    if max(timeseries[topic].values) < 500:
+      continue
+
+    #end = topic_info[topic]['trend_start']
+    #start = end - 1000 * 3600 * 24
+    start = min(all_times)
+    end = max(all_times)
+    ts = timeseries[topic].ts_in_window(start,end)
+    print 'start', start, 'end', end
+    plt.plot(ts.times, ts.values)
+    plt.show()
+
+    

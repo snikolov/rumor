@@ -7,7 +7,6 @@ import os
 import re
 import time as clock
 
-
 def step_to_color(pos, max_pos):
   p = float(pos) / max_pos
   return colorsys.hsv_to_rgb(0.75*p, .75, 1)
@@ -63,18 +62,17 @@ time_to_idx = dict([(time[i],i) for i in range(len(time))])
 topic_rates = {}
 plt.figure()
 
+topic_rates_in_detection_window = {}
+
 from_topic = 0
 to_topic = 50
 
-topic_rates_in_detection_window = {}
-
 # Build the timeseries and extract a slice preceding trend onset.
-for topic in topic_rates_map:
+for ti,topic in enumerate(topic_rates_map):
   trend_start_idx = 0
   trend_end_idx = len(time) - 1
   trend_start = topic_rates_map[topic]['start']
   trend_end = topic_rates_map[topic]['end']
-  print trend_start, trend_end
   for t in sorted(topic_rates_map[topic]['times'].keys()):
     if t > trend_start and trend_start_idx == 0:
       trend_start_idx = time_to_idx[t]
@@ -84,8 +82,15 @@ for topic in topic_rates_map:
       topic_rates[topic] = numpy.zeros(len(time))
     topic_rates[topic][time_to_idx[t]] = topic_rates_map[topic]['times'][t]
 
-  detect_start_idx = max(0,trend_start_idx - 24 * 3600000 / bucket_size) 
-  topic_rates_in_detection_window[topic] = topic_rates[topic][detect_start_idx:trend_start_idx]  
+  detect_start_idx = int(max(0,trend_start_idx - 12 * 3600000 / bucket_size))
+
+  if detect_start_idx == trend_start_idx:
+    continue
+
+  topic_rates_in_detection_window[topic] = topic_rates[topic][detect_start_idx:trend_start_idx]
+  
+  if ti < from_topic or ti > to_topic:
+    continue
 
   plt.plot(time[0:trend_start_idx], topic_rates[topic][0:trend_start_idx], 'b')
 
@@ -101,9 +106,8 @@ for topic in topic_rates_map:
   plt.title(topic)
   plt.show()
 
-
 """
-topics_sorted = topic_rates_map.keys()
+topics_sorted = topic_rates_in_detection_window.keys()
 topics_sorted.sort(lambda x,y: int(sum(topic_rates_in_detection_window[x]) - sum(topic_rates_in_detection_window[y])))
 topics_sorted.reverse()
 
@@ -111,12 +115,11 @@ topic_volumes = [sum(topic_rates_in_detection_window[x]) for x in topics_sorted]
 max_topic_vol = max(topic_volumes)
 min_topic_vol = min(topic_volumes)
 
-
 for ti, topic in enumerate(topics_sorted):
   if ti < from_topic or ti > to_topic:
     continue
   detect_window_cumul = numpy.cumsum(topic_rates_in_detection_window[topic])
-  if max(detect_window_cumul) < 2000:
+  if max(detect_window_cumul) < 100:
     continue  
   plt.plot(detect_window_cumul,
            hold = 'on',
@@ -127,5 +130,4 @@ for ti, topic in enumerate(topics_sorted):
 plt.legend(topics_sorted[from_topic:to_topic + 1], loc=2)
 plt.xlabel('time')
 plt.show()
-
 """
