@@ -285,7 +285,7 @@ def detect(ts_info_pos, ts_info_neg, ts_info_test):
 
 def viz_timeseries(ts_info):
   for (ti, topic) in enumerate(ts_info):
-    interval = 5
+    interval = 6
     ts = ts_info[topic]['ts']
     if ts_info[topic]['trend_start'] == 0 and ts_info[topic]['trend_end'] == 0:
       start = ts.tmin + \
@@ -294,9 +294,13 @@ def viz_timeseries(ts_info):
     else:
       start = ts_info[topic]['trend_start'] - interval * 1000 * 3600
       end =  ts_info[topic]['trend_start']
-
+    #if np.random.rand() > 15.0 / len(ts_info.keys()):
+    #  continue
+    threshold = np.median(ts.values)
     tsw = ts.ts_in_window(start,end)
-    tsw = tsw.pow(5)
-    plt.semilogy(np.array(tsw.times) - min(tsw.times),
-                 np.cumsum(tsw.values), hold = 'on', linewidth = 1)
+    normalized = np.array([max(v - threshold, 0) for v in tsw.values])
+    plt.plot(np.array(tsw.times) - min(tsw.times),
+             np.cumsum(normalized), hold = 'on', linewidth = 1)
+    #plt.plot(np.array(tsw.times) - min(tsw.times),
+    #         tsw.values, hold = 'on', linewidth = 1, color = 'r')
   plt.show()
