@@ -275,17 +275,21 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges, curr_idx, k):
       return False
   return True
 
+def detect(ts_info_pos, ts_info_neg, ts_info_test):
+  pass
+
 def viz_timeseries(ts_info):
   for (ti, topic) in enumerate(ts_info):
     ts = ts_info[topic]['ts']
-    start = ts_info[topic]['trend_start'] - 24 * 1000 * 3600
-    end =  ts_info[topic]['trend_start']
-    if max(ts.values) < 1000:
+    start = ts.tmin + \
+      np.random.rand() * (ts.tmax - ts.tmin - 24 * 3600 * 1000)
+    end = start + 24 * 3600 * 1000
+    print ts.tmin, ts.tmax
+    if max(ts.values) < 2500:
       continue
-    #end = topic_info[topic]['trend_start']
-    #start = end - 1000 * 3600 * 24
+    # start = ts_info[topic]['trend_start'] - 24 * 1000 * 3600
+    # end =  ts_info[topic]['trend_start']
     tsw = ts.ts_in_window(start,end)
-    print 'start', start, 'end', end
     plt.plot(np.array(tsw.times) - min(tsw.times),
-             np.cumsum(tsw.values), hold = 'on')
-  plt.show()
+             np.cumsum(tsw.values), hold = 'on', linewidth = 1)
+    plt.show()
