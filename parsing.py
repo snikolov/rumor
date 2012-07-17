@@ -1,8 +1,11 @@
-import os
 import random
 import re
+import os
 import time
 import util
+
+from gexf import Gexf
+from subprocess import call
 from timeseries import *
 
 def parse_trend_onset(path):
@@ -228,3 +231,61 @@ def parse_timeseries(path):
                                          tmax = max(all_times) + tstep,
                                          tstep = tstep)    
   return topic_info
+
+
+# Builds gexf graph from timestamped edges
+def build_gexf(path, out_name, p_sample = 1):
+  graphs = {}
+  gexfs = {}
+  call(['mkdir', 'data/graphs/' + out_name])
+  files = os.listdir(path)
+  for (fi, file) in enumerate(files):
+    print file
+    if not re.match('part-.-[0-9]{5}',file):
+      print 'Filename', file, 'not valid data. Skipping...'
+      continue
+    if os.path.isdir(file):
+      print 'File', file, 'is directory. Skipping...'
+      continue
+    f = open(os.path.join(path,file), 'r')
+    line = f.readline()
+    while line:
+      if np.random.rand() > p_sample:
+        line = f.readline()
+        continue
+      if np.random.rand() < 0.0001:
+        print sorted([ (len(graphs[t]._nodes), len(graphs[t]._edges), t) for t in graphs ])
+      fields = line_to_fields(line)
+      if len(fields) != 12:
+        # print 'Bad line', line, '. Skipping...'
+        line = f.readline()
+        continue
+      dst_status_id = fields[0]
+      src_status_id = fields[4]
+      time = fields[5]
+      topic = fields[8]
+
+      # Clean non ASCII chars from topic name, since XML complains.
+      topic = ''.join(c for c in topic if ord(c) < 128)
+
+      if topic not in gexfs:
+        gexfs[topic] = Gexf("Stanislav Nikolov", topic)
+        graphs[topic] = gexfs[topic].addGraph("directed", "dynamic", topic)
+      if not graphs[topic].nodeExists(src_status_id):
+        graphs[topic].addNode(id = str(src_status_id), label = "",
+                              start = time, end = "Infinity")
+      if not graphs[topic].nodeExists(dst_status_id):
+        graphs[topic].addNode(id = str(dst_status_id), label = "",
+                              start = time, end = "Infinity")
+      graphs[topic].addEdge(id = "(" + str(src_status_id) + "," + str(dst_status_id) + ")",
+                            source = src_status_id,
+                            target = dst_status_id,
+                            start = time,
+                            end = "Infinity")
+      line = f.readline()
+
+    for topic in gexfs.keys():
+      clean_topic = ''.join([ c for c in topic if (c != '#' and c != ' ') ])
+      out = open("data/graphs/" + out_name + "/" + clean_topic + ".gexf", "w")
+      gexfs[topic].write(out)
+      out.close()

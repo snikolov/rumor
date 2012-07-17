@@ -1,6 +1,13 @@
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import util
+import colorsys
+
+from gexf import Gexf
+from math import log
+from subprocess import call
+from timeseries import *
 
 def compute_rumor_tree_edges(statuses, edges, window):
   rumor_edges=[]
@@ -275,32 +282,189 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges, curr_idx, k):
       return False
   return True
 
-
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # DETECTION
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 
-def detect(ts_info_pos, ts_info_neg, ts_info_test):
-  pass
+def detect(ts_info_pos, ts_info_neg):
+  ts_info_pos_train = {}
+  ts_info_pos_test = {}
+  ts_info_neg_train = {}
+  ts_info_neg_test = {}
 
-def viz_timeseries(ts_info):
-  for (ti, topic) in enumerate(ts_info):
-    interval = 6
-    ts = ts_info[topic]['ts']
-    if ts_info[topic]['trend_start'] == 0 and ts_info[topic]['trend_end'] == 0:
-      start = ts.tmin + \
-        np.random.rand() * (ts.tmax - ts.tmin - interval * 3600 * 1000)
-      end = start + interval * 3600 * 1000
-    else:
-      start = ts_info[topic]['trend_start'] - interval * 1000 * 3600
-      end =  ts_info[topic]['trend_start']
-    #if np.random.rand() > 15.0 / len(ts_info.keys()):
-    #  continue
+  topics_pos = ts_info_pos.keys()
+  topics_neg = ts_info_neg.keys()
+  # Balance the data
+  if len(ts_info_pos) > len(ts_info_neg):
+    more_pos = True
+    r = (len(ts_info_pos) - len(ts_info_neg)) / float(len(ts_info_pos))
+    for topic in topics_pos:
+      if np.random.rand() < r:
+        ts_info_pos.pop(topic)
+  else:
+    more_pos = False
+    r = (len(ts_info_neg) - len(ts_info_pos)) / float(len(ts_info_neg))
+    topics = ts_info_neg.keys()
+    for topic in topics_neg:
+      if np.random.rand() < r:
+        ts_info_neg.pop(topic)
+
+  # Split into training and test
+  topics_pos = ts_info_pos.keys()
+  topics_neg = ts_info_neg.keys()
+  test_frac = 0.1
+  for topic in topics_pos:
+    if np.random.rand() < test_frac:
+      ts_info_pos_test[topic] = ts_info_pos.pop(topic)
+  ts_info_pos_train = ts_info_pos
+  for topic in topics_neg:
+    if np.random.rand() < test_frac:
+      ts_info_neg_test[topic] = ts_info_neg.pop(topic)
+  ts_info_neg_train = ts_info_neg
+
+  # Normalize training timeseries and create bundles
+  bundle_pos = {}
+  bundle_neg = {}
+  detection_interval_time = 3600 * 1000
+  detection_window_time = 24 * detection_interval_time
+
+  for topic in ts_info_pos_train:
+    ts = ts_info_pos_train[topic]['ts']
+    start = ts_info_pos_train[topic]['trend_start'] - detection_window_time
+    end =  ts_info_pos_train[topic]['trend_start']
     threshold = np.median(ts.values)
     tsw = ts.ts_in_window(start,end)
-    normalized = np.array([max(v - threshold, 0) for v in tsw.values])
-    plt.plot(np.array(tsw.times) - min(tsw.times),
-             np.cumsum(normalized), hold = 'on', linewidth = 1)
-    #plt.plot(np.array(tsw.times) - min(tsw.times),
-    #         tsw.values, hold = 'on', linewidth = 1, color = 'r')
+    # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
+    normalized = np.array([ float(v + 0.01) / (threshold + 0.01) for v in tsw.values])
+    bundle_pos[topic] = np.cumsum(normalized)
+    
+  for topic in ts_info_neg_train:
+    ts = ts_info_neg_train[topic]['ts']
+    start = ts.tmin + \
+          np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
+    end = start + detection_window_time
+    threshold = np.median(ts.values) * 100
+    tsw = ts.ts_in_window(start,end)
+    # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
+    normalized = np.array([ float(v + 0.01) / 
+                            (threshold + 0.01) for v in tsw.values])
+    bundle_neg[topic] = np.cumsum(normalized)
+
+  # Normalize test timeseries
+  for topic in ts_info_pos_test:
+    ts = ts_info_pos_test[topic]['ts']
+    threshold = np.median(ts.values)
+    normalized = np.array([ float(v + 0.01) / 
+                            (threshold + 0.01) for v in tsw.values])
+    ts_info_pos_test[topic]['ts'] = Timeseries(ts.times, normalized)
+    
+  for topic in ts_info_neg_test:
+    ts = ts_info_neg_test[topic]['ts']
+    threshold = np.median(ts.values) * 100
+    normalized = np.array([ float(v + 0.01) / 
+                            (threshold + 0.01) for v in ts.values])
+    ts_info_neg_test[topic]['ts'] = Timeseries(ts.times, normalized)
+
+  # Training
+
+  # Test
+  import pdb; pdb.set_trace()
+  tests = {'pos' : {'ts_info' : ts_info_pos_test, 'color' : 'b'},
+           'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
+
+  for type in tests:
+    for topic in tests[type]['ts_info']:
+      print 'Topic: ', topic
+      indices_tested = set()
+      ts_test = tests[type]['ts_info'][topic]['ts']
+      t_window_starts = np.arange(ts_test.tmin,
+          ts_test.tmax - detection_window_time - 2 * detection_interval_time,
+          detection_interval_time)
+      for t_window_start in t_window_starts:
+        i_window_start = ts_test.time_to_index(t_window_start)
+        # print 'Start index: ', i_window_start
+        dt_detects = np.arange(detection_interval_time,
+                               detection_window_time,
+                               detection_interval_time)
+        for dt_detect in dt_detects:
+          di_detect = ts_test.dtime_to_dindex(dt_detect)
+          i_detect = i_window_start + di_detect
+          if i_detect in indices_tested:
+            continue
+          indices_tested.add(i_detect)
+
+          # print 'Offset: ', di_detect, '\tAbsolute: ', (i_window_start + di_detect)
+
+          # Plot histogram of positive and negative values at i_window_start +
+          # di_detect and vertical line for test value
+          values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
+          values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
+
+          test_val = np.sum(ts_test.values[:i_window_start + di_detect])
+          if dt_detect == max(dt_detects) and \
+              t_window_start == max(t_window_starts):
+            plt.hist([log(v) for v in values_pos],
+                     bins = 25, hold = 'on', color = (0,0,1,0.5))
+            plt.hist([log(v) for v in values_neg],
+                     bins = 25, hold = 'on', color = (1,0,0,0.5))
+            print 'Test value: ', log(test_val)
+            plt.axvline(log(test_val), hold = 'on', color = tests[type]['color'])
+            plt.show()
+            
+def detection_func(bundle_pos, bundle_neg, idx, test_val):
+  vals_pos = [ bundle_pos[topic][idx] for topic in bundle_pos ]
+  vals_neg = [ bundle_neg[topic][idx] for topic in bundle_neg ]
+  inv_dists_pos = [ 1 / abs(test_val - v) for v in vals_pos ]
+  inv_dists_neg = [ 1 / abs(test_val - v) for v in vals_neg ]
+  return np.sum(inv_dists_pos) / np.sum(inv_dists_neg)
+
+
+def viz_timeseries(ts_infos):
+  for ts_info in ts_infos:
+    color = colorsys.hsv_to_rgb(np.random.rand(),0.5,0.5)
+    for (ti, topic) in enumerate(ts_info):
+      interval = 6
+      ts = ts_info[topic]['ts']
+      if ts_info[topic]['trend_start'] == 0 and ts_info[topic]['trend_end'] == 0:
+        start = ts.tmin + \
+          np.random.rand() * (ts.tmax - ts.tmin - interval * 3600 * 1000)
+        end = start + interval * 3600 * 1000
+      else:
+        start = ts_info[topic]['trend_start'] - interval * 1000 * 3600
+        end =  ts_info[topic]['trend_start']
+      #if np.random.rand() > 15.0 / len(ts_info.keys()):
+      #  continue
+      # if max(ts.values) < 100:
+      #   continue
+      threshold = np.median(ts.values)
+      if ti == 0:
+        threshold *= 125
+      tsw = ts.ts_in_window(start,end)
+      # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
+      normalized = np.array([ float(v + 0.01) / (threshold + 0.01) for v in tsw.values])
+      plt.plot(np.array(tsw.times) - min(tsw.times),
+               np.cumsum(normalized), hold = 'on', linewidth = 2, color = color)
+      #plt.plot(np.array(tsw.times) - min(tsw.times),
+      #         tsw.values, hold = 'on', linewidth = 1, color = 'r')
   plt.show()
+
+def build_gexf(edges, out_name, p_sample = 1):
+  gexf = Gexf("snikolov", out_name)
+  graph = gexf.addGraph('directed', 'dynamic', out_name)
+  end = str(max([edge[2] for edge in edges]))
+  for (src, dst, time) in edges:
+    if np.random.rand() > p_sample:
+      continue
+    # Assumes time is in epoch seconds
+    #d = datetime.datetime.fromtimestamp(int(time))    
+    #date = d.isoformat()
+    start = str(time)
+    if not graph.nodeExists(src):
+      graph.addNode(id = src, label = '', start = start, end = end)
+    if not graph.nodeExists(dst):
+      graph.addNode(id = dst, label = '', start = start, end = end)
+    graph.addEdge(id = str(src) + ',' + str(dst), source = src,
+                  target = dst, start = start, end = end)
+  out = open('data/graphs/' + out_name + '.gexf', 'w')
+  gexf.write(out)
+  out.close()
