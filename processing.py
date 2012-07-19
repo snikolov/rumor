@@ -309,10 +309,26 @@ def detect(ts_info_pos, ts_info_neg):
       if np.random.rand() < r:
         ts_info_neg.pop(topic)
 
+  # Normalize all timeseries
+  for topic in ts_info_pos:
+    ts = ts_info_pos[topic]['ts']
+    threshold = np.median(ts.values)
+    normalized = np.array([ float(v + 0.01) / 
+                            (threshold + 0.01) for v in ts.values])
+    ts_info_pos[topic]['ts'] = Timeseries(ts.times, normalized)
+    
+
+  for topic in ts_info_neg:
+    ts = ts_info_neg[topic]['ts']
+    threshold = np.median(ts.values)
+    normalized = np.array([ float(v + 0.01) / 
+                            (threshold + 0.01) for v in ts.values])
+    ts_info_neg[topic]['ts'] = Timeseries(ts.times, normalized)
+
   # Split into training and test
   topics_pos = ts_info_pos.keys()
   topics_neg = ts_info_neg.keys()
-  test_frac = 0.1
+  test_frac = 0.05
   for topic in topics_pos:
     if np.random.rand() < test_frac:
       ts_info_pos_test[topic] = ts_info_pos.pop(topic)
@@ -322,59 +338,35 @@ def detect(ts_info_pos, ts_info_neg):
       ts_info_neg_test[topic] = ts_info_neg.pop(topic)
   ts_info_neg_train = ts_info_neg
 
-  # Normalize training timeseries and create bundles
+  # Create positive and negative timeseries bundles
   bundle_pos = {}
   bundle_neg = {}
-  detection_interval_time = 3600 * 1000
+  detection_interval_time = 5 * 60 * 1000
   detection_window_time = 24 * detection_interval_time
 
   for topic in ts_info_pos_train:
     ts = ts_info_pos_train[topic]['ts']
     start = ts_info_pos_train[topic]['trend_start'] - detection_window_time
     end =  ts_info_pos_train[topic]['trend_start']
-    threshold = np.median(ts.values)
     tsw = ts.ts_in_window(start,end)
-    # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
-    normalized = np.array([ float(v + 0.01) / (threshold + 0.01) for v in tsw.values])
-    bundle_pos[topic] = np.cumsum(normalized)
+    bundle_pos[topic] = np.cumsum(tsw.values)
     
   for topic in ts_info_neg_train:
     ts = ts_info_neg_train[topic]['ts']
     start = ts.tmin + \
           np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
     end = start + detection_window_time
-    threshold = np.median(ts.values) * 100
     tsw = ts.ts_in_window(start,end)
-    # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
-    normalized = np.array([ float(v + 0.01) / 
-                            (threshold + 0.01) for v in tsw.values])
-    bundle_neg[topic] = np.cumsum(normalized)
-
-  # Normalize test timeseries
-  for topic in ts_info_pos_test:
-    ts = ts_info_pos_test[topic]['ts']
-    threshold = np.median(ts.values)
-    normalized = np.array([ float(v + 0.01) / 
-                            (threshold + 0.01) for v in tsw.values])
-    ts_info_pos_test[topic]['ts'] = Timeseries(ts.times, normalized)
-    
-  for topic in ts_info_neg_test:
-    ts = ts_info_neg_test[topic]['ts']
-    threshold = np.median(ts.values) * 100
-    normalized = np.array([ float(v + 0.01) / 
-                            (threshold + 0.01) for v in ts.values])
-    ts_info_neg_test[topic]['ts'] = Timeseries(ts.times, normalized)
+    bundle_neg[topic] = np.cumsum(tsw.values)
 
   # Training
 
   # Test
-  import pdb; pdb.set_trace()
   tests = {'pos' : {'ts_info' : ts_info_pos_test, 'color' : 'b'},
            'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
-
   for type in tests:
     for topic in tests[type]['ts_info']:
-      print 'Topic: ', topic
+      print '\nTopic: ', topic, '\t'
       indices_tested = set()
       ts_test = tests[type]['ts_info'][topic]['ts']
       t_window_starts = np.arange(ts_test.tmin,
@@ -395,14 +387,14 @@ def detect(ts_info_pos, ts_info_neg):
 
           # print 'Offset: ', di_detect, '\tAbsolute: ', (i_window_start + di_detect)
 
-          # Plot histogram of positive and negative values at i_window_start +
-          # di_detect and vertical line for test value
-          values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
-          values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
-
-          test_val = np.sum(ts_test.values[:i_window_start + di_detect])
+          test_val = np.sum(ts_test.values[i_window_start:i_window_start + di_detect])
           if dt_detect == max(dt_detects) and \
               t_window_start == max(t_window_starts):
+            # Plot histogram of positive and negative values at i_window_start +
+            # di_detect and vertical line for test value
+            values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
+            values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
+
             plt.hist([log(v) for v in values_pos],
                      bins = 25, hold = 'on', color = (0,0,1,0.5))
             plt.hist([log(v) for v in values_neg],
@@ -418,35 +410,68 @@ def detection_func(bundle_pos, bundle_neg, idx, test_val):
   inv_dists_neg = [ 1 / abs(test_val - v) for v in vals_neg ]
   return np.sum(inv_dists_pos) / np.sum(inv_dists_neg)
 
-
 def viz_timeseries(ts_infos):
-  for ts_info in ts_infos:
-    color = colorsys.hsv_to_rgb(np.random.rand(),0.5,0.5)
+  colors = [(0,0,1), (1,0,0)]
+  detection_window_time = 0.75 * 3600 * 1000
+  bundles = {}
+  for (i, ts_info) in enumerate(ts_infos):
+    color = colors[i]
+    bundles[i] = {}
     for (ti, topic) in enumerate(ts_info):
-      interval = 6
       ts = ts_info[topic]['ts']
       if ts_info[topic]['trend_start'] == 0 and ts_info[topic]['trend_end'] == 0:
         start = ts.tmin + \
-          np.random.rand() * (ts.tmax - ts.tmin - interval * 3600 * 1000)
-        end = start + interval * 3600 * 1000
+          np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
+        end = start + detection_window_time
       else:
-        start = ts_info[topic]['trend_start'] - interval * 1000 * 3600
+        start = ts_info[topic]['trend_start'] - detection_window_time
         end =  ts_info[topic]['trend_start']
-      #if np.random.rand() > 15.0 / len(ts_info.keys()):
-      #  continue
-      # if max(ts.values) < 100:
+      
+      # if np.random.rand() > 10.0 / len(ts_info.keys()):
       #   continue
+      # if i == 0 and max(ts.values) < 50:
+      #   continue
+      
       threshold = np.median(ts.values)
-      if ti == 0:
-        threshold *= 125
       tsw = ts.ts_in_window(start,end)
+
       # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
       normalized = np.array([ float(v + 0.01) / (threshold + 0.01) for v in tsw.values])
-      plt.plot(np.array(tsw.times) - min(tsw.times),
-               np.cumsum(normalized), hold = 'on', linewidth = 2, color = color)
-      #plt.plot(np.array(tsw.times) - min(tsw.times),
-      #         tsw.values, hold = 'on', linewidth = 1, color = 'r')
+
+      bundles[i][topic] = Timeseries(tsw.times,
+                                     [log(v) for v in np.cumsum(normalized)])
+
+      plt.semilogy(np.array(tsw.times) - min(tsw.times),
+               np.cumsum(normalized), hold = 'on', linewidth = 1, color = color)
+      
+      # plt.plot(np.array(tsw.times) - min(tsw.times),
+      #          tsw.values, hold = 'on', linewidth = 1, color = color)
+      
+      """
+      plt.plot(np.array(ts.times),
+               ts.values, hold = 'on', linewidth = 1, color = color)
+      plt.axvline(start, hold = 'on', color = 'k')
+      plt.axvline(end, hold = 'on', color = 'k')
+      """
+      # plt.title(topic)
+      # plt.show()
   plt.show()
+
+  plot_hist = False
+  if plot_hist:
+    for time in np.linspace(0, detection_window_time - 1, 20):
+      for i in bundles:
+        hist = []
+        for topic in bundles[i]:
+          ts = bundles[i][topic]
+          idx = ts.dtime_to_dindex(time)
+          hist.append(ts.values[idx])
+        n, bins, patches = plt.hist(hist, bins = 25, color = colors[i],
+                                    normed = True, hold = 'on')
+        plt.setp(patches, 'facecolor', colors[i], 'alpha', 0.25)
+      plt.title(str((detection_window_time - time) / (60 * 1000)) + \
+                ' minutes before onset')
+      plt.show()
 
 def build_gexf(edges, out_name, p_sample = 1):
   gexf = Gexf("snikolov", out_name)
