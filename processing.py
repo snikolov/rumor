@@ -5,7 +5,7 @@ import util
 import colorsys
 
 from gexf import Gexf
-from math import log
+from math import log, exp
 from subprocess import call
 from timeseries import *
 
@@ -400,15 +400,15 @@ def detect(ts_info_pos, ts_info_neg):
             plt.hist([log(v) for v in values_neg],
                      bins = 25, hold = 'on', color = (1,0,0,0.5))
             print 'Test value: ', log(test_val)
+            print 'Score: ', detection_func(bundle_pos, bundle_neg, di_detect, test_val)
             plt.axvline(log(test_val), hold = 'on', color = tests[type]['color'])
             plt.show()
             
 def detection_func(bundle_pos, bundle_neg, idx, test_val):
-  vals_pos = [ bundle_pos[topic][idx] for topic in bundle_pos ]
-  vals_neg = [ bundle_neg[topic][idx] for topic in bundle_neg ]
-  inv_dists_pos = [ 1 / abs(test_val - v) for v in vals_pos ]
-  inv_dists_neg = [ 1 / abs(test_val - v) for v in vals_neg ]
-  return np.sum(inv_dists_pos) / np.sum(inv_dists_neg)
+  gamma = 1
+  expdists_pos = [ exp(-gamma * abs(test_val - bundle_pos[topic][idx])) for topic in bundle_pos ]
+  expdists_neg = [ exp(-gamma * abs(test_val - bundle_neg[topic][idx])) for topic in bundle_neg ]
+  return np.sum(expdists_pos) / np.sum(expdists_neg)
 
 def viz_timeseries(ts_infos):
   colors = [(0,0,1), (1,0,0)]
