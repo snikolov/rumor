@@ -225,6 +225,13 @@ def parse_timeseries(path):
         topic_info[topic]['ts_dict'][int(time)] += ts_value
       else:
         topic_info[topic]['ts_dict'][int(time)] = ts_value
+
+      # Convention is that if start and end are 0, they're just placeholders and
+      # there is no meaningful start or end.
+      if trend_start == 0 and trend_end == 0:
+        trend_start = None
+        trend_end = None
+        
       topic_info[topic]['trend_start'] = trend_start
       topic_info[topic]['trend_end'] = trend_end
       line = f.readline()

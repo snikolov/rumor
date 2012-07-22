@@ -300,12 +300,13 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges,
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def detect(ts_info_pos, ts_info_neg):
-  ts_info_pos_train = {}
-  ts_info_pos_test = {}
-  ts_info_neg_train = {}
-  ts_info_neg_test = {}
+def viz_detection(ts_info_pos, ts_info_neg, trend_times)
+  # Get raw and normalized rates
+  # Do detection and get 1) score(t) 2) detection times
+  # Compare trend times, detection times, rates, normalized rates, scores
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_balance_data(ts_info_pos, ts_info_neg):
   topics_pos = ts_info_pos.keys()
   topics_neg = ts_info_neg.keys()
   # Balance the data
@@ -323,171 +324,183 @@ def detect(ts_info_pos, ts_info_neg):
       if np.random.rand() < r:
         ts_info_neg.pop(topic)
 
+  return ts_info_pos, ts_info_neg
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_normalize(ts_info):
   # Normalize all timeseries
-  for topic in ts_info_pos:
-    ts = ts_info_pos[topic]['ts']
+  for topic in ts_info:
+    ts = ts_info[topic]['ts']
     threshold = np.median(ts.values)
     normalized = np.array([ float(v + 0.01) / 
                             (threshold + 0.01) for v in ts.values])
-    ts_info_pos[topic]['ts'] = Timeseries(ts.times, normalized)
-    
+    ts_info[topic]['ts'] = Timeseries(ts.times, normalized)
+  return ts_info
 
-  for topic in ts_info_neg:
-    ts = ts_info_neg[topic]['ts']
-    threshold = np.median(ts.values)
-    normalized = np.array([ float(v + 0.01) / 
-                            (threshold + 0.01) for v in ts.values])
-    ts_info_neg[topic]['ts'] = Timeseries(ts.times, normalized)
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+# Create timeseries bundles.
+def ts_bundle(ts_info, detection_window_time):
+  bundle = {}
+  for topic in ts_info:
+    ts = ts_info[topic]['ts']
 
+    if ts_info[topic]['trend_start'] is None or \
+          ts_info[topic]['trend_end'] is None:
+      start = ts.tmin + \
+          np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
+      end = start + detection_window_time
+    else:
+      start = ts_info[topic]['trend_start'] - detection_window_time
+      end =  ts_info[topic]['trend_start']
+
+    tsw = ts.ts_in_window(start,end)
+    bundle[topic] = np.cumsum(tsw.values)
+
+  return bundle
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_split_training_test(ts_info, test_frac):
   # Split into training and test
-  topics_pos = ts_info_pos.keys()
-  topics_neg = ts_info_neg.keys()
-  test_frac = 0.10
-  for topic in topics_pos:
+  topics = ts_info.keys()
+  ts_info_test = {}
+  for topic in topics:
     if np.random.rand() < test_frac:
-      ts_info_pos_test[topic] = ts_info_pos.pop(topic)
-  ts_info_pos_train = ts_info_pos
-  for topic in topics_neg:
-    if np.random.rand() < test_frac:
-      ts_info_neg_test[topic] = ts_info_neg.pop(topic)
-  ts_info_neg_train = ts_info_neg
+      ts_info_test[topic] = ts_info.pop(topic)
+  ts_info_train = ts_info
+  return ts_info_train, ts_info_test
 
-  # Create positive and negative timeseries bundles
-  bundle_pos = {}
-  bundle_neg = {}
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_detect(ts_info_pos, ts_info_neg, threshold):
+  ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
+
+  ts_info_pos = ts_normalize(ts_info_pos)
+  ts_info_neg = ts_normalize(ts_info_neg)
+
+  ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
+                                                               0.1)
+  ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
+                                                               0.1)
   detection_interval_time = 5 * 60 * 1000
   detection_window_time = 6 * detection_interval_time
+  bundle_pos = ts_bundle(ts_info_pos_train)
+  bundle_neg = ts_bundle(ts_info_neg_train)
 
-  for topic in ts_info_pos_train:
-    ts = ts_info_pos_train[topic]['ts']
-    start = ts_info_pos_train[topic]['trend_start'] - detection_window_time
-    end =  ts_info_pos_train[topic]['trend_start']
-    tsw = ts.ts_in_window(start,end)
-    bundle_pos[topic] = np.cumsum(tsw.values)
-    
-  for topic in ts_info_neg_train:
-    ts = ts_info_neg_train[topic]['ts']
-    start = ts.tmin + \
-          np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
-    end = start + detection_window_time
-    tsw = ts.ts_in_window(start,end)
-    bundle_neg[topic] = np.cumsum(tsw.values)
-
-  # Training
+  results = {}
+  results['scores'] = {}
+  results['detection'] = {}
 
   # Test
   tests = {'pos' : {'ts_info' : ts_info_pos_test, 'color' : 'b'},
            'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
+
   detection_info = {}
-  score_thresholds = [1]
-  for score_threshold in score_thresholds:
-    detection_info[score_threshold] = {}
-    for type in tests:
-      detection_info[score_threshold][type] = {}
-      for ti, topic in enumerate(tests[type]['ts_info']):
-        print 'Topic: ', topic, '\t', ti, '/', len(tests[type]['ts_info'])
-        indices_tested = set()
-        ts_test = tests[type]['ts_info'][topic]['ts']
-        # Store scores at the end of each window
-        scores = []
-        # Detection variables
-        detected = False
-        detection_info[score_threshold][type][topic] = {}
-        detection_info[score_threshold][type][topic]['score'] = None
-        detection_info[score_threshold][type][topic]['time'] = None
+  
+  for type in tests:
+    detection_info[type] = {}
+    for ti, topic in enumerate(tests[type]['ts_info']):
+      print 'Topic: ', topic, '\t', ti, '/', len(tests[type]['ts_info'])
+      indices_tested = set()
+      ts_test = tests[type]['ts_info'][topic]['ts']
+      # Store scores at the end of each window
+      scores = []
+      # Detection variables
+      detected = False
+      detection_info[type][topic] = {}
+      detection_info[type][topic]['score'] = None
+      detection_info[type][topic]['time'] = None
 
-        t_window_starts = np.arange(ts_test.tmin,
-          ts_test.tmax - detection_window_time - detection_interval_time,
-          detection_interval_time)
-        for t_window_start in t_window_starts:
-          if detected:
+      t_window_starts = np.arange(ts_test.tmin,
+        ts_test.tmax - detection_window_time - detection_interval_time,
+        detection_interval_time)
+      for t_window_start in t_window_starts:
+        if detected and stop_when_detected:
+          break
+        i_window_start = ts_test.time_to_index(t_window_start)
+        # print 'Start index: ', i_window_start
+        dt_detects = np.arange(detection_interval_time,
+                               detection_window_time,
+                               detection_interval_time)
+        for dt_detect in dt_detects:
+          if detected and stop_when_detected:
             break
-          i_window_start = ts_test.time_to_index(t_window_start)
-          # print 'Start index: ', i_window_start
-          dt_detects = np.arange(detection_interval_time,
-                                 detection_window_time,
-                                 detection_interval_time)
-          for dt_detect in dt_detects:
-            if detected:
-              break
-            di_detect = ts_test.dtime_to_dindex(dt_detect)
-            i_detect = i_window_start + di_detect
-            if i_detect in indices_tested:
-              continue
-            indices_tested.add(i_detect)
+          di_detect = ts_test.dtime_to_dindex(dt_detect)
+          i_detect = i_window_start + di_detect
+          if i_detect in indices_tested:
+            continue
+          indices_tested.add(i_detect)
 
-            # print 'Offset: ', di_detect, '\tAbsolute: ', \
-            #   (i_window_start + di_detect)
+          # print 'Offset: ', di_detect, '\tAbsolute: ', \
+          #   (i_window_start + di_detect)
 
-            # Compute score and do detection
-            score_end_of_window_only = False
-            test_val = np.sum(ts_test.values[i_window_start:i_window_start + \
-                                               di_detect])
-            if dt_detect == max(dt_detects) or not score_end_of_window_only:
-              score = detection_func(bundle_pos, bundle_neg, di_detect,
-                                     test_val)
-              scores.append(score)
-              if score > score_threshold:
-                # For positive examples, store detection relative to true onset
-                # of the trend. For negative examples, the onset should be 0.
-                detection_time = t_window_start + dt_detect
-                true_onset_time = tests[type]['ts_info'][topic]['trend_start']
-                detection_info[score_threshold][type][topic] = {}
-                if type is 'pos':
-                  # Only record detection when we are close to the actual trend
-                  # onset. Otherwise, we are doing detection for different
-                  # earlier events that happen to the same topic.
-                  if abs(detection_time - true_onset_time) < 1000 * 3600 * 6:
-                    detection_info[score_threshold][type][topic]['time'] = \
-                        detection_time - true_onset_time
-                    detection_info[score_threshold][type][topic]['score'] = score
-                    detected = True
-                    print 'Detected'
-                elif type is 'neg':
-                  detection_info[score_threshold][type][topic]['time'] = \
+          # Compute score and do detection
+          score_end_of_window_only = False
+          test_val = np.sum(ts_test.values[i_window_start:i_window_start + \
+                                             di_detect])
+          if dt_detect == max(dt_detects) or not score_end_of_window_only:
+            score = detection_func(bundle_pos, bundle_neg, di_detect,
+                                   test_val)
+            scores.append(score)
+            if score > threshold:
+              # For positive examples, store detection relative to true onset
+              # of the trend. For negative examples, the onset should be 0.
+              detection_time = t_window_start + dt_detect
+              true_onset_time = tests[type]['ts_info'][topic]['trend_start']
+              detection_info[type][topic] = {}
+              if type is 'pos':
+                # Only record detection when we are close to the actual trend
+                # onset. Otherwise, we are doing detection for different
+                # earlier events that happen to the same topic.
+                if abs(detection_time - true_onset_time) < 1000 * 3600 * 6:
+                  detection_info[type][topic]['time'] = \
                       detection_time - true_onset_time
-                  detection_info[score_threshold][type][topic]['score'] = score
+                  detection_info[type][topic]['score'] = score
                   detected = True
                   print 'Detected'
-            
-            # Plots
-            plot_scores = False
-            if plot_scores:
-              if dt_detect == max(dt_detects) and \
-                    t_window_start == max(t_window_starts):
-                plt.plot(scores, color = tests[type]['color'])
-                plt.title(topic)
-                plt.show()
+              elif type is 'neg':
+                detection_info[type][topic]['time'] = \
+                    detection_time - true_onset_time
+                detection_info[type][topic]['score'] = score
+                detected = True
+                print 'Detected'
 
-            plot_hist = False
-            if plot_hist:
-              if dt_detect == max(dt_detects):
-                # Plot histogram of positive and negative values at
-                # i_window_start + di_detect and vertical line for test value
-                values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
-                values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
+          # Plots
+          plot_scores = False
+          if plot_scores:
+            if dt_detect == max(dt_detects) and \
+                  t_window_start == max(t_window_starts):
+              plt.plot(scores, color = tests[type]['color'])
+              plt.title(topic)
+              plt.show()
 
-                n, bins, patches = plt.hist([log(v) for v in values_pos],
-                                            bins = 25, hold = 'on',
-                                            color = (0,0,1),
-                                            normed = True)
+          plot_hist = False
+          if plot_hist:
+            if dt_detect == max(dt_detects):
+              # Plot histogram of positive and negative values at
+              # i_window_start + di_detect and vertical line for test value
+              values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
+              values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
 
-                plt.setp(patches, 'facecolor', (0,0,1), 'alpha', 0.25)
+              n, bins, patches = plt.hist([log(v) for v in values_pos],
+                                          bins = 25, hold = 'on',
+                                          color = (0,0,1),
+                                          normed = True)
 
-                n, bins, patches = plt.hist([log(v) for v in values_neg],
-                                            bins = 25, hold = 'on',
-                                            color = (1,0,0),
-                                            normed = True)
+              plt.setp(patches, 'facecolor', (0,0,1), 'alpha', 0.25)
 
-                plt.setp(patches, 'facecolor', (1,0,0), 'alpha', 0.25)
-                print 'Test value: ', log(test_val)
+              n, bins, patches = plt.hist([log(v) for v in values_neg],
+                                          bins = 25, hold = 'on',
+                                          color = (1,0,0),
+                                          normed = True)
 
-                print 'Score: ', detection_func(bundle_pos, bundle_neg,
-                                                di_detect, test_val)
+              plt.setp(patches, 'facecolor', (1,0,0), 'alpha', 0.25)
+              print 'Test value: ', log(test_val)
 
-                plt.axvline(log(test_val), hold = 'on',
-                            color = tests[type]['color'])
-                plt.show()
+              print 'Score: ', detection_func(bundle_pos, bundle_neg,
+                                              di_detect, test_val)
+
+              plt.axvline(log(test_val), hold = 'on',
+                          color = tests[type]['color'])
+              plt.show()
   return detection_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
