@@ -8,6 +8,7 @@ from gexf import Gexf
 from subprocess import call
 from timeseries import *
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_trend_onset(path):
   try:
     f = open(path, 'r')
@@ -16,6 +17,7 @@ def parse_trend_onset(path):
   except IOError:
     return None
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Parses edges from the file at path.
 def parse_edges_sampled(path, p):
   files = os.listdir(path)
@@ -42,6 +44,7 @@ def parse_edges_sampled(path, p):
     f.close()
   return edges
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def line_to_fields(line):
   clean_fields = []
   fields = re.split('\t', line)
@@ -49,6 +52,7 @@ def line_to_fields(line):
     clean_fields.append(re.sub('\n', '', field))
   return clean_fields
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_edges_node_sampled(path, sample_nodes):
   files = os.listdir(path)
   edges = []
@@ -66,6 +70,7 @@ def parse_edges_node_sampled(path, sample_nodes):
     f.close()
   return edges
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_edges(path):
   files = os.listdir(path)
   edges = []
@@ -80,7 +85,8 @@ def parse_edges(path):
       line = f.readline()
     f.close()
   return edges
-    
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~    
 def parse_statuses_edges_in_window(statuses_dir, edges_dir, p, tmin, tmax):
   # Parse statuses within time window [tmin,tmax]. Note that these are relative
   # to the minimum time across all statuses. Statuses are assumed sorted in
@@ -143,6 +149,7 @@ def parse_statuses_edges_in_window(statuses_dir, edges_dir, p, tmin, tmax):
     f.close()
   return (statuses, edges)
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_statuses_sampled(path, p):
   files = os.listdir(path)
   statuses = {}
@@ -164,6 +171,7 @@ def parse_statuses_sampled(path, p):
       line = f.readline()
   return statuses
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_statuses_edge_sampled(path, sample_edge_nodes):
   files = os.listdir(path)
   statuses = {}
@@ -182,6 +190,7 @@ def parse_statuses_edge_sampled(path, sample_edge_nodes):
       line = f.readline()
   return statuses
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_timeseries(path):
   files = os.listdir(path)
   topic_info = {}
@@ -232,7 +241,7 @@ def parse_timeseries(path):
                                          tstep = tstep)    
   return topic_info
 
-
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Builds gexf graph from timestamped edges
 def build_gexf(path, out_name, p_sample = 1):
   graphs = {}
