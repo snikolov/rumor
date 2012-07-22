@@ -298,3 +298,36 @@ def build_gexf(path, out_name, p_sample = 1):
       out = open("data/graphs/" + out_name + "/" + clean_topic + ".gexf", "w")
       gexfs[topic].write(out)
       out.close()
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+# Parse the times that each topic was trending.
+def parse_trend_times(path):
+  trending_times = {}
+  files = os.listdir(path)
+  for (fi, file) in enumerate(files):
+    print file
+    if not re.match('part-.-[0-9]{5}',file):
+      print 'Filename', file, 'not valid data. Skipping...'
+      continue
+    if os.path.isdir(file):
+      print 'File', file, 'is directory. Skipping...'
+      continue
+    f = open(os.path.join(path,file), 'r')
+    line = f.readline()
+    while line:
+      fields = line_to_fields(line)
+      if len(fields) is not 8:
+        line = f.readline()
+        print 'Bad line', line
+        continue
+      if fields[0] is '' or fields[4] is '':
+        line = f.readline()
+        print 'Bad line', line
+        continue
+      topic = fields[0]
+      time = int(fields[4])
+      if topic not in trending_times:
+        trending_times[topic] = []
+      trending_times[topic].append(time)
+      line = f.readline()
+  return trending_times
