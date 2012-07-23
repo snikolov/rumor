@@ -1,8 +1,9 @@
+import colorsys
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 import util
-import colorsys
 
 from gexf import Gexf
 from math import log, exp
@@ -302,9 +303,37 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges,
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_detection(ts_info_pos, ts_info_neg, trend_times):
   # Get raw and normalized rates
-  # Do detection and get 1) score(t) 2) detection times
   # Compare trend times, detection times, rates, normalized rates, scores
-  pass
+  detection_results = ts_detect(ts_info_pos, ts_info_neg, threshold = 5,
+                                test_frac = 0.1)
+  detections = detection_results['detection']
+  scores = detection_results['scores']
+  
+  tests = { 'pos': 'b', 'neg': 'r' }
+  for type in tests:
+    # Plot detection times vs actual trend times.
+    for topic in detections[type]:
+      topic_detection_scores = detections[type][topic]['scores']
+      topic_detection_times = detections[type][topic]['times']
+      if len(topic_detection_times) > 0:
+        markerline, stemlines, baseline = \
+            plt.stem(np.array(topic_detection_times),
+                     1.2 * np.ones((len(topic_detection_times), 1)),
+                     hold = 'on')
+        plt.setp(markerline, 'markerfacecolor', tests[type])
+        plt.setp(markerline, 'markeredgecolor', tests[type])
+        plt.setp(stemlines, 'color', tests[type])
+      if type is 'pos':
+        topic_trending_times = trend_times[topic]
+        markerline, stemlines, baseline = \
+            plt.stem(np.array(topic_trending_times),
+                     np.ones((len(topic_trending_times), 1)),
+                     hold = 'on')
+        plt.setp(markerline, 'markerfacecolor', 'k')
+        plt.setp(markerline, 'markeredgecolor', 'k')
+        plt.setp(stemlines, 'color', 'k')
+      plt.ylim([0, 1.5])
+      plt.show()
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_balance_data(ts_info_pos, ts_info_neg):
@@ -374,15 +403,15 @@ def ts_split_training_test(ts_info, test_frac):
   return ts_info_train, ts_info_test
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_detect(ts_info_pos, ts_info_neg, threshold):
+def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
   ts_info_pos = ts_normalize(ts_info_pos)
   ts_info_neg = ts_normalize(ts_info_neg)
   
   ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
-                                                               0.1)
+                                                               test_frac)
   ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
-                                                               0.1)
+                                                               test_frac)
   detection_interval_time = 5 * 60 * 1000
   detection_window_time = 6 * detection_interval_time
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time)
@@ -403,7 +432,7 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold):
     detection[type] = {}
     scores[type] = {}
     for ti, topic in enumerate(tests[type]['ts_info']):
-      print 'Topic: ', topic, '\t', ti, '/', len(tests[type]['ts_info'])
+      print 'Topic: ', topic, '\t', ti + 1, '/', len(tests[type]['ts_info'])
       indices_tested = set()
       ts_test = tests[type]['ts_info'][topic]['ts']
       # Store scores at the end of each window
@@ -453,6 +482,9 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold):
               detection[type][topic]['times'].append(detection_time)
               detection[type][topic]['scores'].append(score)
               detected = True
+              sys.stdout.write('.')
+            else:
+              sys.stdout.write(' ')
 
           # Plots
           plot_scores = False
