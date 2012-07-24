@@ -10,6 +10,8 @@ from math import log, exp
 from subprocess import call
 from timeseries import *
 
+np.seterr(all = 'raise')
+
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def compute_rumor_tree_edges(statuses, edges, window):
   rumor_edges=[]
@@ -301,14 +303,26 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges,
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def viz_detection(ts_info_pos, ts_info_neg, trend_times):
+def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
+                  detection_results = None):
   # Get raw and normalized rates
   # Compare trend times, detection times, rates, normalized rates, scores
-  detection_results = ts_detect(ts_info_pos, ts_info_neg, threshold = 5,
-                                test_frac = 0.1)
+  
+  if detection_results is None:
+    detection_results = ts_detect(ts_info_pos, ts_info_neg, threshold = 5,
+                                  test_frac = 0.25)
+
   detections = detection_results['detection']
   scores = detection_results['scores']
   
+  mean_scores_pos = None
+  for topic in scores['pos']:
+    if mean_scores_pos is None:
+      mean_scores_pos = np.array(scores['pos'][topic].values)
+    else:
+      mean_scores_pos += np.array(scores['pos'][topic].values)
+  mean_scores_pos /= len(scores['pos'])
+
   tests = { 'pos': 'b', 'neg': 'r' }
   for type in tests:
     # Plot detection times vs actual trend times.
@@ -323,16 +337,24 @@ def viz_detection(ts_info_pos, ts_info_neg, trend_times):
         plt.setp(markerline, 'markerfacecolor', tests[type])
         plt.setp(markerline, 'markeredgecolor', tests[type])
         plt.setp(stemlines, 'color', tests[type])
-      if type is 'pos':
-        topic_trending_times = trend_times[topic]
-        markerline, stemlines, baseline = \
-            plt.stem(np.array(topic_trending_times),
-                     np.ones((len(topic_trending_times), 1)),
-                     hold = 'on')
-        plt.setp(markerline, 'markerfacecolor', 'k')
-        plt.setp(markerline, 'markeredgecolor', 'k')
-        plt.setp(stemlines, 'color', 'k')
-      plt.ylim([0, 1.5])
+
+      plt.plot(scores[type][topic].times, mean_scores_pos, hold = 'on',
+               color = 'm')
+      plt.plot(scores[type][topic].times, scores[type][topic].values,
+               hold = 'on', color = 'g')
+      plt.title(topic)
+
+      if trend_times is not None:
+        if type is 'pos':
+          topic_trending_times = trend_times[topic]
+          markerline, stemlines, baseline = \
+              plt.stem(np.array(topic_trending_times),
+                       np.ones((len(topic_trending_times), 1)),
+                       hold = 'on')
+          plt.setp(markerline, 'markerfacecolor', 'k')
+          plt.setp(markerline, 'markeredgecolor', 'k')
+          plt.setp(stemlines, 'color', 'k')
+
       plt.show()
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -405,15 +427,17 @@ def ts_split_training_test(ts_info, test_frac):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
-  ts_info_pos = ts_normalize(ts_info_pos)
-  ts_info_neg = ts_normalize(ts_info_neg)
+  
+  ## Normalize whole timeseries a priori.
+  # ts_info_pos = ts_normalize(ts_info_pos)
+  # ts_info_neg = ts_normalize(ts_info_neg)
   
   ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
                                                                test_frac)
   ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
                                                                test_frac)
   detection_interval_time = 5 * 60 * 1000
-  detection_window_time = 6 * detection_interval_time
+  detection_window_time = 12 * detection_interval_time
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time)
   bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time)
 
@@ -428,6 +452,8 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
            'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
 
   stop_when_detected = False
+  # Number of contiguous samples to use to compare two volume trajectories.
+  cmpr_window = 1
   for type in tests:
     detection[type] = {}
     scores[type] = {}
@@ -470,11 +496,16 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
 
           # Compute score and do detection
           score_end_of_window_only = False
-          test_val = np.sum(ts_test.values[i_window_start:i_window_start + \
-                                             di_detect])
+          test_rate = ts_test.values[0:i_window_start + di_detect]
+          test_rate_norm = np.mean(test_rate)
+          test_rate_in_window = \
+              ts_test.values[i_window_start:i_window_start + di_detect]
+          test_trajectory = np.cumsum(test_rate_in_window / test_rate_norm)
+
+          test_val = test_trajectory[-1]
           if dt_detect == max(dt_detects) or not score_end_of_window_only:
-            score = detection_func(bundle_pos, bundle_neg, di_detect,
-                                   test_val)
+            score = detection_func(bundle_pos, bundle_neg, test_trajectory,
+                                   len(test_trajectory) - 1, cmpr_window)
             topic_scores.append(score)
             topic_score_times.append(dt_detect + t_window_start)
             if score > threshold:
@@ -520,7 +551,9 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
               print 'Test value: ', log(test_val)
 
               print 'Score: ', detection_func(bundle_pos, bundle_neg,
-                                              di_detect, test_val)
+                                              test_trajectory,
+                                              len(test_trajectory) - 1,
+                                              cmpr_window)
 
               plt.axvline(log(test_val), hold = 'on',
                           color = tests[type]['color'])
@@ -531,13 +564,63 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
   return results
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def detection_func(bundle_pos, bundle_neg, idx, test_val):
+def detection_func(bundle_pos, bundle_neg, trajectory_test, idx, cmpr_window):
   gamma = 1
-  expdists_pos = [ exp(-gamma * abs(log(test_val) - \
-                   log(bundle_pos[topic][idx]))) for topic in bundle_pos ]
-  expdists_neg = [ exp(-gamma * abs(log(test_val) - \
-                   log(bundle_neg[topic][idx]))) for topic in bundle_neg ]
-  return np.sum(expdists_pos) / np.sum(expdists_neg)
+
+  if cmpr_window > 1:
+    dists_pos = []
+    dists_neg = []
+
+    # Make the min index 1, since we are taking log of values of a cumsum and the
+  # value at 0 will be 0.
+    imin = max(idx - cmpr_window + 1, 1)
+    imax = idx
+
+    if imin == imax:
+      return 0
+
+    trajectory_test_cmpr = trajectory_test[imin:imax]
+
+    # Convex distance function. SLOW
+    # dist = lambda x, y: abs(log(x) - log(y))
+
+    bundle_pos_cmpr = [ bundle_pos[topic][imin:imax] 
+                        for topic in bundle_pos ]
+
+    bundle_neg_cmpr = [ bundle_neg[topic][imin:imax] 
+                        for topic in bundle_neg ]
+
+    dists_pos = [
+      np.mean(
+        [
+          abs(log(trajectory_test_cmpr[i]) - log(trajectory_pos_cmpr[i]))
+          for i in range(len(trajectory_pos_cmpr))
+        ]
+      )
+      for trajectory_pos_cmpr in bundle_pos_cmpr
+    ]
+
+    dists_neg = [
+      np.mean(
+        [
+          abs(log(trajectory_test_cmpr[i]) - log(trajectory_neg_cmpr[i]))
+          for i in range(len(trajectory_neg_cmpr))
+        ]
+      )
+      for trajectory_neg_cmpr in bundle_neg_cmpr
+    ]
+
+    prob_pos = np.mean([exp(-gamma * d) for d in dists_pos])
+    prob_neg = np.mean([exp(-gamma * d) for d in dists_neg])
+  else:
+    prob_pos = np.mean(
+      [ exp(-gamma * abs(log(trajectory_test[idx]) - log(bundle_pos[t][idx])))
+        for t in bundle_pos ])
+    prob_neg = np.mean(
+      [ exp(-gamma * abs(log(trajectory_test[idx]) - log(bundle_neg[t][idx])))
+        for t in bundle_neg ])
+
+  return prob_pos / prob_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos):
