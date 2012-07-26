@@ -303,14 +303,73 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges,
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_eval_for_param(ts_info_pos, ts_info_neg, threshold):
+  ts_norm_func = ts_mean_median_norm_func(1, 0)
+  detection_results = ts_detect(ts_info_pos = ts_info_pos,
+                                ts_info_neg = ts_info_neg,
+                                threshold = threshold,
+                                test_frac = 0.10,
+                                ts_norm_func = ts_norm_func)
+  detections = detection_results['detection']
+  lates = []
+  earlies = []
+  tp = 0
+  fn = 0
+  for topic in detections['pos']:
+    if len(detections['pos'][topic]['times']) > 0:
+      tp += 1
+      detection_time = min(detections['pos'][topic]['times'])
+      onset_time = ts_info_pos[topic]['trend_start']
+      if detection_time > onset_time:
+        lates.append(detection_time - onset_time)
+      else:
+        earlies.append(onset_time - detection_time)
+    else:
+      fn += 1
+  fp = 0
+  tn = 0
+  for topic in detections['neg']:
+    if len(detections['neg'][topic]['times']) > 0:
+      fp += 1
+    else:
+      tn += 1
+
+  print 'total pos = ', len(detections['pos'])
+  print 'total neg = ', len(detections['neg'])
+  print 'total = ', len(detections['neg']) + len(detections['pos'])
+  print 'tp = ', tp 
+  print 'fn = ', fn 
+  print 'fp = ', fp 
+  print 'tn = ', tn
+  print 'fpr = ', (float(fp) / (fp + tn))
+  print 'tpr = ', (float(tp) / (fn + tp))
+  avg_early = None
+  std_early = None
+  avg_late = None
+  std_late = None
+  if len(earlies) > 0:
+    avg_early = np.mean(earlies) / (3600 * 1000)
+    std_early = np.std(earlies) / (3600 * 1000)
+  if len(lates) > 0:
+    avg_late = np.mean(lates) / (3600 * 1000)
+    std_late = np.std(lates) / (3600 * 1000)
+  print 'avg. early = ', avg_early, 'hrs'
+  print 'stdev. early = ', std_early, 'hrs'
+  print 'avg. late = ', avg_late, 'hrs'
+  print 'stdev. late = ', std_late, 'hrs'
+  print 'earlies\n', earlies, 'hrs'
+  print 'lates\n', lates, 'hrs'
+  
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
                   detection_results = None):
   # Get raw and normalized rates
   # Compare trend times, detection times, rates, normalized rates, scores
   
   if detection_results is None:
+    ts_norm_func = ts_mean_median_norm_func(1, 0)
     detection_results = ts_detect(ts_info_pos, ts_info_neg, threshold = 5,
-                                  test_frac = 0.25)
+                                  test_frac = 0.25, ts_norm_func = ts_norm_func)
 
   detections = detection_results['detection']
   scores = detection_results['scores']
@@ -381,16 +440,21 @@ def ts_balance_data(ts_info_pos, ts_info_neg):
   return ts_info_pos_bal, ts_info_neg_bal
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_normalize(ts_info):
+def ts_normalize(ts_info, ts_norm_func):
   # Normalize all timeseries
   ts_info = ts_info.copy()
   for topic in ts_info:
     ts = ts_info[topic]['ts']
-    threshold = np.median(ts.values)
+    ts_norm = ts_norm_func(ts.values)
     normalized = np.array([ float(v + 0.01) / 
-                            (threshold + 0.01) for v in ts.values])
+                            (ts_norm + 0.01) for v in ts.values])
     ts_info[topic]['ts'] = Timeseries(ts.times, normalized)
   return ts_info
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_mean_median_norm_func(mean_weight, median_weight):
+  func = lambda x: median_weight * np.median(x) + mean_weight * np.mean(x)
+  return func
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Create timeseries bundles.
@@ -425,7 +489,8 @@ def ts_split_training_test(ts_info, test_frac):
   return ts_info_train, ts_info_test
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
+def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
+              ts_norm_func = None):
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
   
   ## Normalize whole timeseries a priori.
@@ -438,6 +503,11 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
                                                                test_frac)
   detection_interval_time = 5 * 60 * 1000
   detection_window_time = 12 * detection_interval_time
+
+  # Normalize only training timeseries a priori (TODO: do it online)
+  ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
+  ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
+
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time)
   bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time)
 
@@ -501,11 +571,13 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
           score_end_of_window_only = False
           test_rate = ts_test.values[0:i_window_start + di_detect]
           # TODO: decaying weights for online background model.
-          test_rate_norm = 0.5 * np.median(test_rate) + 0.5 * mean(test_rate)
+          test_rate_norm = ts_norm_func(test_rate)
           test_rate_in_window = \
               ts_test.values[i_window_start:i_window_start + di_detect]
-          test_trajectory = np.cumsum(test_rate_in_window / test_rate_norm)
-
+          # TODO: abstract out the 0.01 trick in a separate normalization
+          # method.
+          test_trajectory = np.cumsum(test_rate_in_window + 0.01 / (test_rate_norm + 0.01))
+          
           test_val = test_trajectory[-1]
           if dt_detect == max(dt_detects) or not score_end_of_window_only:
             score = detection_func(bundle_pos, bundle_neg, test_trajectory,
@@ -514,7 +586,7 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
             topic_score_times.append(dt_detect + t_window_start)
             if score > threshold:
               detection_time = t_window_start + dt_detect
-              onset_time = ts_test['trend_start']
+              onset_time = tests[type]['ts_info'][topic]['trend_start']
               record_detection = True
               if onset_time is not None and \
                   ignore_detection_far_from_onset and \
