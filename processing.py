@@ -451,7 +451,10 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
   tests = {'pos' : {'ts_info' : ts_info_pos_test, 'color' : 'b'},
            'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
 
-  stop_when_detected = False
+  stop_when_detected = True
+  ignore_detection_far_from_onset = True
+  ignore_detection_window = 6 * 1000 * 3600
+
   # Number of contiguous samples to use to compare two volume trajectories.
   cmpr_window = 1
   for type in tests:
@@ -497,7 +500,8 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
           # Compute score and do detection
           score_end_of_window_only = False
           test_rate = ts_test.values[0:i_window_start + di_detect]
-          test_rate_norm = np.mean(test_rate)
+          # TODO: decaying weights for online background model.
+          test_rate_norm = 0.5 * np.median(test_rate) + 0.5 * mean(test_rate)
           test_rate_in_window = \
               ts_test.values[i_window_start:i_window_start + di_detect]
           test_trajectory = np.cumsum(test_rate_in_window / test_rate_norm)
@@ -510,9 +514,16 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05):
             topic_score_times.append(dt_detect + t_window_start)
             if score > threshold:
               detection_time = t_window_start + dt_detect
-              detection[type][topic]['times'].append(detection_time)
-              detection[type][topic]['scores'].append(score)
-              detected = True
+              onset_time = ts_test['trend_start']
+              record_detection = True
+              if onset_time is not None and \
+                  ignore_detection_far_from_onset and \
+                  abs(detection_time - onset_time) > ignore_detection_window:
+                record_detection = False
+              if record_detection:
+                detection[type][topic]['times'].append(detection_time)
+                detection[type][topic]['scores'].append(score)
+                detected = True
               sys.stdout.write('.')
             else:
               sys.stdout.write(' ')
