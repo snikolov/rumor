@@ -1,4 +1,5 @@
 import colorsys
+import copy
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
@@ -303,12 +304,12 @@ def last_k_statuses_equal(equals_val, rumor_statuses, rumor_edges,
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_eval_for_param(ts_info_pos, ts_info_neg, threshold):
+def ts_eval_for_param(ts_info_pos, ts_info_neg, threshold, trend_times = None):
   ts_norm_func = ts_mean_median_norm_func(1, 0)
   detection_results = ts_detect(ts_info_pos = ts_info_pos,
                                 ts_info_neg = ts_info_neg,
                                 threshold = threshold,
-                                test_frac = 0.10,
+                                test_frac = 0.25,
                                 ts_norm_func = ts_norm_func)
   detections = detection_results['detection']
   lates = []
@@ -359,6 +360,11 @@ def ts_eval_for_param(ts_info_pos, ts_info_neg, threshold):
   print 'stdev. late = ', std_late, 'hrs'
   print 'earlies\n', earlies, 'hrs'
   print 'lates\n', lates, 'hrs'
+  
+  viz = True
+  if viz:
+    viz_detection(detection_results = detection_results,
+                  trend_times = trend_times)
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
@@ -420,8 +426,8 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
 def ts_balance_data(ts_info_pos, ts_info_neg):
   topics_pos = ts_info_pos.keys()
   topics_neg = ts_info_neg.keys()
-  ts_info_pos_bal = ts_info_pos.copy()
-  ts_info_neg_bal = ts_info_neg.copy()
+  ts_info_pos_bal = copy.deepcopy(ts_info_pos)
+  ts_info_neg_bal = copy.deepcopy(ts_info_neg)
   # Balance the data
   if len(ts_info_pos) > len(ts_info_neg):
     more_pos = True
@@ -441,14 +447,23 @@ def ts_balance_data(ts_info_pos, ts_info_neg):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_normalize(ts_info, ts_norm_func):
+  # TODO: This became really slow. Profile!!
   # Normalize all timeseries
-  ts_info = ts_info.copy()
-  for topic in ts_info:
+  method = 'offline'
+  ts_info = copy.deepcopy(ts_info)
+  for (i, topic) in enumerate(ts_info):
+    print topic, ' ', (i + 1), '/', len(ts_info)
     ts = ts_info[topic]['ts']
-    ts_norm = ts_norm_func(ts.values)
-    normalized = np.array([ float(v + 0.01) / 
-                            (ts_norm + 0.01) for v in ts.values])
-    ts_info[topic]['ts'] = Timeseries(ts.times, normalized)
+    if method is 'online':
+      norm_values = np.zeros((len(ts.values), 1))
+      norm_values = \
+          [ (ts.values[i] + 0.01) / (ts_norm_func(ts.values[0:i + 1]) + 0.01)
+            for i in range(len(ts.values)) ]
+    else:
+      ts_norm = ts_norm_func(ts.values)
+      norm_values = \
+          [ (v + 0.01) / (ts_norm + 0.01) for v in ts.values ]
+    ts_info[topic]['ts'] = Timeseries(ts.times, norm_values)
   return ts_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -473,14 +488,14 @@ def ts_bundle(ts_info, detection_window_time):
       end =  ts_info[topic]['trend_start']
 
     tsw = ts.ts_in_window(start,end)
-    bundle[topic] = np.cumsum(tsw.values)
+    bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values))
 
   return bundle
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_split_training_test(ts_info, test_frac):
   # Split into training and test
-  ts_info_train = ts_info.copy()
+  ts_info_train = copy.deepcopy(ts_info)
   topics = ts_info.keys()
   ts_info_test = {}
   for topic in topics:
@@ -491,6 +506,8 @@ def ts_split_training_test(ts_info, test_frac):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               ts_norm_func = None):
+  np.random.seed(3523)
+
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
   
   ## Normalize whole timeseries a priori.
@@ -667,10 +684,10 @@ def detection_func(bundle_pos, bundle_neg, trajectory_test, idx, cmpr_window):
     # Convex distance function. SLOW
     # dist = lambda x, y: abs(log(x) - log(y))
 
-    bundle_pos_cmpr = [ bundle_pos[topic][imin:imax] 
+    bundle_pos_cmpr = [ bundle_pos[topic].values[imin:imax] 
                         for topic in bundle_pos ]
 
-    bundle_neg_cmpr = [ bundle_neg[topic][imin:imax] 
+    bundle_neg_cmpr = [ bundle_neg[topic].values[imin:imax] 
                         for topic in bundle_neg ]
 
     dists_pos = [
@@ -696,66 +713,45 @@ def detection_func(bundle_pos, bundle_neg, trajectory_test, idx, cmpr_window):
     prob_pos = np.mean([exp(-gamma * d) for d in dists_pos])
     prob_neg = np.mean([exp(-gamma * d) for d in dists_neg])
   else:
-    prob_pos = np.mean(
-      [ exp(-gamma * abs(log(trajectory_test[idx]) - log(bundle_pos[t][idx])))
-        for t in bundle_pos ])
-    prob_neg = np.mean(
-      [ exp(-gamma * abs(log(trajectory_test[idx]) - log(bundle_neg[t][idx])))
-        for t in bundle_neg ])
+    prob_pos = np.mean( [ exp(-gamma * abs(log(trajectory_test[idx]) - \
+                          log(bundle_pos[t].values[idx])))
+                          for t in bundle_pos ] )
+    prob_neg = np.mean( [ exp(-gamma * abs(log(trajectory_test[idx]) - \
+                          log(bundle_neg[t].values[idx])))
+                          for t in bundle_neg ] )
 
   return prob_pos / prob_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos):
+  """
+  for (i, ts_info) in enumerate(ts_infos):
+    ts_infos[i] = copy.deepcopy(ts_info)
+    topics = ts_info.keys()
+    for t in topics:
+      if np.random.rand() < 0.9:
+        ts_infos[i].pop(t)
+  """
+
   colors = [(0,0,1), (1,0,0)]
   detection_window_time = 0.75 * 3600 * 1000
+  ts_norm_func = ts_mean_median_norm_func(0, 1)
   bundles = {}
   for (i, ts_info) in enumerate(ts_infos):
+    # Normalize.
+    ts_info = ts_normalize(ts_info, ts_norm_func)
+    # Create bundles.
+    bundle = ts_bundle(ts_info, detection_window_time)
+    bundles[i] = bundle
+    # Plot.
     color = colors[i]
-    bundles[i] = {}
-    for (ti, topic) in enumerate(ts_info):
-      ts = ts_info[topic]['ts']
-      if ts_info[topic]['trend_start'] is None or \
-            ts_info[topic]['trend_end'] is None:
-        start = ts.tmin + \
-          np.random.rand() * (ts.tmax - ts.tmin - detection_window_time)
-        end = start + detection_window_time
-      else:
-        start = ts_info[topic]['trend_start'] - detection_window_time
-        end =  ts_info[topic]['trend_start']
-      
-      # if np.random.rand() > 10.0 / len(ts_info.keys()):
-      #   continue
-      # if i == 0 and max(ts.values) < 50:
-      #   continue
-      
-      threshold = np.median(ts.values)
-      tsw = ts.ts_in_window(start,end)
-
-      # normalized = np.array([max(v - threshold, 0) for v in tsw.values])
-      normalized = np.array([ float(v + 0.01) / 
-                              (threshold + 0.01) for v in tsw.values])
-
-      bundles[i][topic] = Timeseries(tsw.times,
-                                     [log(v) for v in np.cumsum(normalized)])
-
-      plt.semilogy(np.array(tsw.times) - min(tsw.times), np.cumsum(normalized),
-                   hold = 'on', linewidth = 1, color = color)
-      
-      # plt.plot(np.array(tsw.times) - min(tsw.times),
-      #          tsw.values, hold = 'on', linewidth = 1, color = color)
-      
-      """
-      plt.plot(np.array(ts.times),
-               ts.values, hold = 'on', linewidth = 1, color = color)
-      plt.axvline(start, hold = 'on', color = 'k')
-      plt.axvline(end, hold = 'on', color = 'k')
-      """
-      # plt.title(topic)
-      # plt.show()
+    for t in bundle:
+      plt.semilogy(np.array(bundle[t].times) - bundle[t].tmin,
+                   bundle[t].values, hold = 'on', linewidth = 1,
+                   color = color)
   plt.show()
 
-  plot_hist = False
+  plot_hist = True
   if plot_hist:
     for time in np.linspace(0, detection_window_time - 1, 20):
       for i in bundles:
@@ -763,12 +759,14 @@ def viz_timeseries(ts_infos):
         for topic in bundles[i]:
           ts = bundles[i][topic]
           idx = ts.dtime_to_dindex(time)
-          hist.append(ts.values[idx])
+          hist.append(log(ts.values[idx]))
+        
         n, bins, patches = plt.hist(hist, bins = 25, color = colors[i],
                                     normed = True, hold = 'on')
         plt.setp(patches, 'facecolor', colors[i], 'alpha', 0.25)
+      
       plt.title(str((detection_window_time - time) / (60 * 1000)) + \
-                ' minutes before onset')
+                    ' minutes before onset')
       plt.show()
 
 def build_gexf(edges, out_name, p_sample = 1):
