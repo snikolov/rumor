@@ -379,14 +379,6 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
 
   detections = detection_results['detection']
   scores = detection_results['scores']
-  
-  mean_scores_pos = None
-  for topic in scores['pos']:
-    if mean_scores_pos is None:
-      mean_scores_pos = np.array(scores['pos'][topic].values)
-    else:
-      mean_scores_pos += np.array(scores['pos'][topic].values)
-  mean_scores_pos /= len(scores['pos'])
 
   tests = { 'pos': 'b', 'neg': 'r' }
   for type in tests:
@@ -403,8 +395,6 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
         plt.setp(markerline, 'markeredgecolor', tests[type])
         plt.setp(stemlines, 'color', tests[type])
 
-      plt.plot(scores[type][topic].times, mean_scores_pos, hold = 'on',
-               color = 'm')
       plt.plot(scores[type][topic].times, scores[type][topic].values,
                hold = 'on', color = 'g')
       plt.title(topic)
@@ -488,8 +478,8 @@ def ts_bundle(ts_info, detection_window_time):
       end =  ts_info[topic]['trend_start']
 
     tsw = ts.ts_in_window(start,end)
-    bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values))
-
+    # Add 1 as a fudge factor, since we're taking log. TODO
+    bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
   return bundle
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -508,6 +498,8 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               ts_norm_func = None):
   np.random.seed(3523)
 
+  # TODO: different norm_funcs?
+
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
   
   ## Normalize whole timeseries a priori.
@@ -521,9 +513,11 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
   detection_interval_time = 5 * 60 * 1000
   detection_window_time = 12 * detection_interval_time
 
+  ts_norm_func = ts_mean_median_norm_func(0, 1)
   # Normalize only training timeseries a priori (TODO: do it online)
   ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
   ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
+  ts_norm_func = ts_mean_median_norm_func(1, 0)
 
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time)
   bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time)
@@ -538,8 +532,8 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
   tests = {'pos' : {'ts_info' : ts_info_pos_test, 'color' : 'b'},
            'neg' : {'ts_info' : ts_info_neg_test, 'color' : 'r'}}
 
-  stop_when_detected = True
-  ignore_detection_far_from_onset = True
+  stop_when_detected = False
+  ignore_detection_far_from_onset = False
   ignore_detection_window = 6 * 1000 * 3600
 
   # Number of contiguous samples to use to compare two volume trajectories.
@@ -759,7 +753,10 @@ def viz_timeseries(ts_infos):
         for topic in bundles[i]:
           ts = bundles[i][topic]
           idx = ts.dtime_to_dindex(time)
-          hist.append(log(ts.values[idx]))
+          if ts.values[idx] == 0:
+            print 'zero encountered', topic
+          else:
+            hist.append(log(ts.values[idx]))
         
         n, bins, patches = plt.hist(hist, bins = 25, color = colors[i],
                                     normed = True, hold = 'on')
