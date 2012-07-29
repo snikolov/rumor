@@ -5,15 +5,19 @@
 %% \files=
 %% prompt when you run the file main.tex through LaTeX.
 \chapter{Introduction}
-Detection, classification, and prediction of events in timeseries is a ubiquitous problem. From detecting malfunctions in a production plant, to predicting an imminent market crash, to revealing emerging popular topics in a social network, timeseries analysis methods (????) are fundamental for extracting meaning from any time-varying data.
+Detection, classification, and prediction of events in timeseries are ubiquitous problems. From detecting malfunctions in a production plant, to predicting an imminent market crash, to revealing emerging popular topics in a social network, timeseries analysis methods (????) are fundamental for extracting useful information from time-varying data (Really? Timeseries methods are useful for extracting meaning from timeseries?? You don't say.).
 
-In recent years, there has been an explosion of data from virtually every human endeavor --- including healthcare, biology, physics, finance, and social interaction online and offline --- that demands for us to extract the valuable insights hidden within it. At the same time, developments in distributed computation technologies have made it easier than ever to exploit the structure in this data to do inference at scale.
+In recent years, there has been an explosion in the availability of data related to virtually every human endeavor --- data that demands to be analyzed and turned into valuable insights. ( --- including healthcare, biology, physics, finance, and social interaction online and offline --- ) MORE INSIGHTS Massive streams of user generated documents, such as blogs and tweets, as well as data from portable electronic devices, provide an amazing opportunity to study the dynamics of human social interaction online and face to face (cite Pentland?). Physics: LHC. In healthcare, data (WHAT KIND) about epidemics can suggest the most effect ways to limit the spread of disease; continuous patient monitoring can identify at-risk individuals and situations and help medical professionals make life-saving decisions. The recent financial meltdown (ugh cliche) highlights the need for increased efforts ??? what about Black Swan events, etc... of course there are things we can't predict, but there should be plenty that we can that are important... what's a good example?
+
+At the same time, despite overwhelming amounts of data, developments in distributed computation technologies have made it easier than ever to exploit the structure in that data to do inference at scale.
+
+Why is it hard?
 
 \section{Previous Work}
 Timeseries classification. Event detection. Network cascade models. Branching process models.
 
 \section{My Approach}
-Simple models prove ineffective when exposed to the vast variety of real world situations. (What about adaptive models?) I propose a nonparametric framework for doing inference on timeseries (VAGUE). In this model, we posit that there are latent timeseries, each corresponding to a prototypical event of a certain type, and each observed timeseries is a noisy observation of one of the latent timeseries.
+Simple models prove ineffective when exposed to the vast variety of real world situations. (What about adaptive models?). [SAY MORE ABOUT THIS] I propose a nonparametric framework for doing inference on timeseries (VAGUE). In this model, we posit that there exist of a set of latent timeseries, each corresponding to a prototypical event of a certain type, and that each observed timeseries is a noisy observation of one of the latent timeseries.
 
 How does this apply to 1) Detection 2) Classification 3) Prediction? What's the difference between classification and detection?
 
@@ -29,5 +33,4 @@ A timeseries in a given window is compared to two {\em reference} timeseries bun
 
 \subsection{Application: Detecting Outbreaks of Popular Topics on Twitter}
 As an application, I apply the method (CALL IT SOMETHING) to the problem of detecting emerging popular topics (called {\em trends}) on Twitter. I use a set of labeled examples of timeseries correspondingn to topics that eventually became trending topics and topics that did not. I then perform online classification of a given topic to label it as trending or not trending at a particular time.
-
 ***********Talk about results and main contributions.
