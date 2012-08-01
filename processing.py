@@ -496,7 +496,7 @@ def ts_split_training_test(ts_info, test_frac):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               ts_norm_func = None):
-  np.random.seed(3523)
+  np.random.seed(31953)
 
   # TODO: different norm_funcs?
 
@@ -579,15 +579,16 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
           #   (i_window_start + di_detect)
 
           # Compute score and do detection
-          score_end_of_window_only = False
+          score_end_of_window_only = True
           test_rate = ts_test.values[0:i_window_start + di_detect]
           # TODO: decaying weights for online background model.
           test_rate_norm = ts_norm_func(test_rate)
-          test_rate_in_window = \
-              ts_test.values[i_window_start:i_window_start + di_detect]
+          test_rate_in_window = np.array(
+            ts_test.values[i_window_start:i_window_start + di_detect])
           # TODO: abstract out the 0.01 trick in a separate normalization
           # method.
-          test_trajectory = np.cumsum(test_rate_in_window + 0.01 / (test_rate_norm + 0.01))
+          test_trajectory = np.cumsum(
+            (test_rate_in_window + 0.01) / (test_rate_norm + 0.01))
           
           test_val = test_trajectory[-1]
           if dt_detect == max(dt_detects) or not score_end_of_window_only:
@@ -626,8 +627,8 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
             if dt_detect == max(dt_detects):
               # Plot histogram of positive and negative values at
               # i_window_start + di_detect and vertical line for test value
-              values_pos = [bundle_pos[t][di_detect] for t in bundle_pos]
-              values_neg = [bundle_neg[t][di_detect] for t in bundle_neg]
+              values_pos = [bundle_pos[t].values[di_detect] for t in bundle_pos]
+              values_neg = [bundle_neg[t].values[di_detect] for t in bundle_neg]
 
               n, bins, patches = plt.hist([log(v) for v in values_pos],
                                           bins = 25, hold = 'on',
