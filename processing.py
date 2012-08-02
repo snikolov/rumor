@@ -413,35 +413,44 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
       plt.show()
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_balance_data(ts_info_pos, ts_info_neg):
-  topics_pos = ts_info_pos.keys()
-  topics_neg = ts_info_neg.keys()
+def ts_shift_detect(ts_info_pos, ts_info_neg):
+  pass
 
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
+  topics_pos = ts_info_pos_orig.keys()
+  topics_neg = ts_info_neg_orig.keys()
+
+  ts_info_pos = {}
+  ts_info_neg = {}
   # Balance the data
-  if len(ts_info_pos) > len(ts_info_neg):
+  if len(ts_info_pos_orig) > len(ts_info_neg_orig):
     more_pos = True
-    r = (len(ts_info_pos) - len(ts_info_neg)) / float(len(ts_info_pos))
+    r = (len(ts_info_pos_orig) - len(ts_info_neg_orig)) / \
+        float(len(ts_info_pos_orig))
     for topic in topics_pos:
-      if np.random.rand() < r:
-        ts_info_pos.pop(topic)
+      if np.random.rand() > r:
+        ts_info_pos[topic] = ts_info_pos_orig[topic]
   else:
     more_pos = False
-    r = (len(ts_info_neg) - len(ts_info_pos)) / float(len(ts_info_neg))
-    topics = ts_info_neg.keys()
+    r = (len(ts_info_neg_orig) - len(ts_info_pos_orig)) / \
+        float(len(ts_info_neg_orig))
     for topic in topics_neg:
-      if np.random.rand() < r:
-        ts_info_neg.pop(topic)
+      if np.random.rand() > r:
+        ts_info_neg[topic] = ts_info_neg_orig[topic]
 
   return ts_info_pos, ts_info_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_normalize(ts_info, ts_norm_func):
+def ts_normalize(ts_info_orig, ts_norm_func):
   # TODO: This became really slow. Profile!!
   # Normalize all timeseries
+  ts_info = {}
   method = 'offline'
-  for (i, topic) in enumerate(ts_info):
+  for (i, topic) in enumerate(ts_info_orig):
     print topic, ' ', (i + 1), '/', len(ts_info)
-    ts = ts_info[topic]['ts']
+    ts = ts_info_orig[topic]['ts']
+    ts_info[topic] = {}
     if method is 'online':
       norm_values = np.zeros((len(ts.values), 1))
       norm_values = \
@@ -452,6 +461,8 @@ def ts_normalize(ts_info, ts_norm_func):
       norm_values = \
           [ (v + 0.01) / (ts_norm + 0.01) for v in ts.values ]
     ts_info[topic]['ts'] = Timeseries(ts.times, norm_values)
+    ts_info[topic]['trend_start'] = ts_info_orig[topic]['trend_start']
+    ts_info[topic]['trend_end'] = ts_info_orig[topic]['trend_end']
   return ts_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -477,7 +488,7 @@ def ts_bundle(ts_info, detection_window_time):
       end =  ts_info[topic]['trend_start']
 
     tsw = ts.ts_in_window(start,end)
-    # Add 1 as a fudge factor, since we're taking log. TODO
+    # Add eps as a fudge factor, since we're taking log. TODO
     #bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
     bundle[topic] = Timeseries(tsw.times,
       np.convolve(np.array(tsw.values), np.ones(25,), mode = 'same') + 0.01)
@@ -495,25 +506,15 @@ def ts_split_training_test(ts_info, test_frac):
   return ts_info_train, ts_info_test
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
+def ts_detect(ts_info_pos_orig, ts_info_neg_orig, threshold = 1, test_frac = 0.05,
               ts_norm_func = None):
   np.random.seed(31953)
 
-  print 'Creating deep copies...'
-  ts_info_pos = copy.deepcopy(ts_info_pos)
-  ts_info_neg = copy.deepcopy(ts_info_neg)
-
   # Sample data
   print 'Sampling data...'
-  topics_pos = ts_info_pos.keys()
-  topics_neg = ts_info_neg.keys()
-  p_sample = 0.05
-  for t in topics_pos:
-    if np.random.rand() < p_sample:
-      ts_info_pos.pop(t)
-  for t in topics_neg:
-    if np.random.rand() < p_sample:
-      ts_info_neg.pop(t)
+  p_sample = 0.1
+  ts_info_pos = ts_sample_topics(ts_info_pos_orig, p_sample)
+  ts_info_neg = ts_sample_topics(ts_info_neg_orig, p_sample)
 
   # TODO: different norm_funcs?
 
@@ -746,6 +747,14 @@ def detection_func(bundle_pos, bundle_neg, trajectory_test, idx, cmpr_window):
   return prob_pos / prob_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_sample_topics(ts_info_orig, p_sample):
+  ts_info = {}
+  for t in ts_info_orig.keys():
+    if np.random.rand() < p_sample:
+      ts_info[t] = ts_info_orig[t]
+  return ts_info
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos):
   
   plt.ioff()
@@ -756,11 +765,9 @@ def viz_timeseries(ts_infos):
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   bundles = {}
   for (i, ts_info) in enumerate(ts_infos):
+    # Sample
+    ts_info = ts_sample_topics(ts_info, 0.9)
     # Normalize.
-    ts_info = copy.deepcopy(ts_info)
-    for t in ts_info.keys():
-      if np.random.rand() < 0.9:
-        ts_info.pop(t)
     ts_info = ts_normalize(ts_info, ts_norm_func)
     # Create bundles.
     bundle = ts_bundle(ts_info, detection_window_time)
