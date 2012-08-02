@@ -463,6 +463,7 @@ def ts_mean_median_norm_func(mean_weight, median_weight):
 # Create timeseries bundles.
 def ts_bundle(ts_info, detection_window_time):
   bundle = {}
+  # TODO should abstract away normalization.
   for topic in ts_info:
     ts = ts_info[topic]['ts']
 
@@ -477,7 +478,9 @@ def ts_bundle(ts_info, detection_window_time):
 
     tsw = ts.ts_in_window(start,end)
     # Add 1 as a fudge factor, since we're taking log. TODO
-    bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
+    #bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
+    bundle[topic] = Timeseries(tsw.times,
+      np.convolve(np.array(tsw.values), np.ones(10,), mode = 'same') + 0.01)
   return bundle
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -753,12 +756,15 @@ def viz_timeseries(ts_infos):
         ts_infos[i].pop(t)
   """
 
+  plt.ioff()
+
   colors = [(0,0,1), (1,0,0)]
-  detection_window_time = 0.75 * 3600 * 1000
+  detection_window_time = 6 * 3600 * 1000
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   bundles = {}
   for (i, ts_info) in enumerate(ts_infos):
     # Normalize.
+    ts_info = copy.deepcopy(ts_info)
     ts_info = ts_normalize(ts_info, ts_norm_func)
     # Create bundles.
     bundle = ts_bundle(ts_info, detection_window_time)
