@@ -416,31 +416,29 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
 def ts_balance_data(ts_info_pos, ts_info_neg):
   topics_pos = ts_info_pos.keys()
   topics_neg = ts_info_neg.keys()
-  ts_info_pos_bal = copy.deepcopy(ts_info_pos)
-  ts_info_neg_bal = copy.deepcopy(ts_info_neg)
+
   # Balance the data
   if len(ts_info_pos) > len(ts_info_neg):
     more_pos = True
     r = (len(ts_info_pos) - len(ts_info_neg)) / float(len(ts_info_pos))
     for topic in topics_pos:
       if np.random.rand() < r:
-        ts_info_pos_bal.pop(topic)
+        ts_info_pos.pop(topic)
   else:
     more_pos = False
     r = (len(ts_info_neg) - len(ts_info_pos)) / float(len(ts_info_neg))
     topics = ts_info_neg.keys()
     for topic in topics_neg:
       if np.random.rand() < r:
-        ts_info_neg_bal.pop(topic)
+        ts_info_neg.pop(topic)
 
-  return ts_info_pos_bal, ts_info_neg_bal
+  return ts_info_pos, ts_info_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_normalize(ts_info, ts_norm_func):
   # TODO: This became really slow. Profile!!
   # Normalize all timeseries
   method = 'offline'
-  ts_info = copy.deepcopy(ts_info)
   for (i, topic) in enumerate(ts_info):
     print topic, ' ', (i + 1), '/', len(ts_info)
     ts = ts_info[topic]['ts']
@@ -485,7 +483,7 @@ def ts_bundle(ts_info, detection_window_time):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_split_training_test(ts_info, test_frac):
   # Split into training and test
-  ts_info_train = copy.deepcopy(ts_info)
+  ts_info_train = ts_info
   topics = ts_info.keys()
   ts_info_test = {}
   for topic in topics:
@@ -498,14 +496,32 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               ts_norm_func = None):
   np.random.seed(31953)
 
+  print 'Creating deep copies...'
+  ts_info_pos = copy.deepcopy(ts_info_pos)
+  ts_info_neg = copy.deepcopy(ts_info_neg)
+
+  # Sample data
+  print 'Sampling data...'
+  topics_pos = ts_info_pos.keys()
+  topics_neg = ts_info_neg.keys()
+  p_sample = 0.05
+  for t in topics_pos:
+    if np.random.rand() < p_sample:
+      ts_info_pos.pop(t)
+  for t in topics_neg:
+    if np.random.rand() < p_sample:
+      ts_info_neg.pop(t)
+
   # TODO: different norm_funcs?
 
+  print 'Balancing data...'
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
   
   ## Normalize whole timeseries a priori.
   # ts_info_pos = ts_normalize(ts_info_pos)
   # ts_info_neg = ts_normalize(ts_info_neg)
   
+  print 'Splitting into training and test...'
   ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
                                                                test_frac)
   ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
@@ -513,12 +529,14 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
   detection_interval_time = 5 * 60 * 1000
   detection_window_time = 12 * detection_interval_time
 
-  ts_norm_func = ts_mean_median_norm_func(0, 1)
+  ts_norm_func = ts_mean_median_norm_func(0.5, 0.5)
   # Normalize only training timeseries a priori (TODO: do it online)
+  print 'Normalizing...'
   ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
   ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
-  ts_norm_func = ts_mean_median_norm_func(1, 0)
+  ts_norm_func = ts_mean_median_norm_func(0.5, 0.5)
 
+  print 'Creating bundles...'
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time)
   bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time)
 
@@ -535,7 +553,14 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
   stop_when_detected = False
   ignore_detection_far_from_onset = False
   ignore_detection_window = 6 * 1000 * 3600
-
+  plot_hist = True
+  plot_scores = False
+  if plot_hist or plot_scores:
+    plt.close('all')
+    plt.ion()
+    plt.figure()
+    plt.hold(False)
+    plt.show()
   # Number of contiguous samples to use to compare two volume trajectories.
   cmpr_window = 1
   for type in tests:
@@ -613,7 +638,6 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               sys.stdout.write(' ')
 
           # Plots
-          plot_scores = False
           if plot_scores:
             if dt_detect == max(dt_detects) and \
                   t_window_start == max(t_window_starts):
@@ -622,7 +646,6 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               plt.title(topic)
               plt.show()
 
-          plot_hist = False
           if plot_hist:
             if dt_detect == max(dt_detects):
               # Plot histogram of positive and negative values at
@@ -631,28 +654,30 @@ def ts_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.05,
               values_neg = [bundle_neg[t].values[di_detect] for t in bundle_neg]
 
               n, bins, patches = plt.hist([log(v) for v in values_pos],
-                                          bins = 25, hold = 'on',
+                                          bins = 25,
                                           color = (0,0,1),
                                           normed = True)
-
+              plt.hold(True)
               plt.setp(patches, 'facecolor', (0,0,1), 'alpha', 0.25)
 
               n, bins, patches = plt.hist([log(v) for v in values_neg],
-                                          bins = 25, hold = 'on',
+                                          bins = 25,
                                           color = (1,0,0),
                                           normed = True)
 
               plt.setp(patches, 'facecolor', (1,0,0), 'alpha', 0.25)
-              print 'Test value: ', log(test_val)
-
+              #print 'Test value: ', log(test_val)
+              """
               print 'Score: ', detection_func(bundle_pos, bundle_neg,
                                               test_trajectory,
                                               len(test_trajectory) - 1,
                                               cmpr_window)
-
+              """
               plt.axvline(log(test_val), hold = 'on',
-                          color = tests[type]['color'])
-              plt.show()
+                          color = tests[type]['color'], linewidth = 2)
+              plt.title(topic)
+              plt.hold(False)
+              plt.draw()
       scores[type][topic] = Timeseries(topic_score_times, topic_scores)
   results['detection'] = detection
   results['scores'] = scores

@@ -8,6 +8,8 @@
 \section{Motivation}
 Detection, classification, and prediction of events in temporal streams of information are ubiquitous problems in science, engineering and society (TOO BROAD?). From detecting malfunctions in a production plant, to predicting an imminent market crash, to revealing emerging popular topics in a social network, extracting useful information from time-varying data is fundamental for understanding the processes around us and making decisions.
 
+(The method does not require that the indpendent variable is time.)
+
 In recent years, there has been an explosion in the availability of data related to virtually every human endeavor --- data that demands to be analyzed and turned into valuable insights. Massive streams of user generated documents, such as blogs and tweets, as well as data from portable electronic devices, provide an amazing opportunity to study the dynamics of human social interaction online and face to face (cite Pentland?). How do people make decisions? Who are they influenced by? How do ideas and behaviors spread and evolve? These are questions that have been impossible to study empirically at scale until recent times. In healthcare, records of over-the-counter medication sales (cite National Retail Data Monitor) as well as search engine queries can anticipate the outbreak of disease and provide insight into the most effective ways to limit its spread. Particle collision experiments at the Large Hadron Collider generate more than 15 petabytes (SOURCE?) of data every year that promises to reveal the most fundamental physical truths.
 
 (Does the physics example really fit in here? It's not a network example, but it looks like we won't be using anything network specific in the method.)
@@ -32,13 +34,19 @@ This is difficult to do in general. Many real-world processes defy simple models
 Like language, the behavior of complex systems rarely admits a simple model that works well in practice. Like machine translation and speech recognition, there is an ever growing amount of data ``in the wild'' about processes like epidemics, rumor-spreading in social networks, financial transactions, and more. The inadequacy of simple models for complex behavior requires an approach that embraces this wealth of data and it highlights the need for a unified framework that efficiently exploits the structure in that data to do detection, classification, and prediction in timeseries.
 
 \section{Previous Work}
-Event detection
 
-Classification
+Event detection in timeseries.
 
-Network cascade models. 
+Classification in timeseries.
 
-Branching process models.
+Prediction in timeseries.
+
+Models with theoretical justification for the underlying model of the process. Network cascade models. Branching process models.
+Epidemics, Social Network rumor spreading
+
+(Nonparametric) timeseries clustering methods
+
+Explicit generative model? Mixture model?
 
 \section{My Approach}
 Simple models prove ineffective when exposed to the vast variety of real world situations. [SAY MORE ABOUT THIS] I propose a nonparametric framework for doing inference on timeseries (VAGUE). In this model, we posit that there exist of a set of latent timeseries, each corresponding to a prototypical event of a certain type, and that each observed timeseries is a noisy observation of one of the latent timeseries.
