@@ -480,7 +480,7 @@ def ts_bundle(ts_info, detection_window_time):
     # Add 1 as a fudge factor, since we're taking log. TODO
     #bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
     bundle[topic] = Timeseries(tsw.times,
-      np.convolve(np.array(tsw.values), np.ones(10,), mode = 'same') + 0.01)
+      np.convolve(np.array(tsw.values), np.ones(25,), mode = 'same') + 0.01)
   return bundle
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -747,24 +747,20 @@ def detection_func(bundle_pos, bundle_neg, trajectory_test, idx, cmpr_window):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos):
-  """
-  for (i, ts_info) in enumerate(ts_infos):
-    ts_infos[i] = copy.deepcopy(ts_info)
-    topics = ts_info.keys()
-    for t in topics:
-      if np.random.rand() < 0.9:
-        ts_infos[i].pop(t)
-  """
-
+  
   plt.ioff()
 
   colors = [(0,0,1), (1,0,0)]
+  rand_colors = True
   detection_window_time = 6 * 3600 * 1000
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   bundles = {}
   for (i, ts_info) in enumerate(ts_infos):
     # Normalize.
     ts_info = copy.deepcopy(ts_info)
+    for t in ts_info.keys():
+      if np.random.rand() < 0.9:
+        ts_info.pop(t)
     ts_info = ts_normalize(ts_info, ts_norm_func)
     # Create bundles.
     bundle = ts_bundle(ts_info, detection_window_time)
@@ -772,12 +768,14 @@ def viz_timeseries(ts_infos):
     # Plot.
     color = colors[i]
     for t in bundle:
+      if rand_colors:
+        color = (np.random.rand(), np.random.rand(), np.random.rand())
       plt.semilogy(np.array(bundle[t].times) - bundle[t].tmin,
                    bundle[t].values, hold = 'on', linewidth = 1,
                    color = color)
   plt.show()
 
-  plot_hist = True
+  plot_hist = False
   if plot_hist:
     for time in np.linspace(0, detection_window_time - 1, 20):
       for i in bundles:

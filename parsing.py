@@ -238,8 +238,8 @@ def parse_timeseries(path):
 
   all_times = sorted(list(set([ t for l in [ times.keys() for times in [ topic_info[topic]['ts_dict'] for topic in topic_info] ] for t in l])))
 
-  # Hardcode timestep for now
-  tstep = 300000
+  # TODO: Hardcode timestep for now.
+  tstep = 120000
   
   for ti, topic in enumerate(topic_info):
     topic_info[topic]['ts'] = Timeseries(ts_dict = topic_info[topic]['ts_dict'], 
