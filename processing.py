@@ -472,7 +472,7 @@ def ts_mean_median_norm_func(mean_weight, median_weight):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Create timeseries bundles.
-def ts_bundle(ts_info, detection_window_time):
+def ts_bundle(ts_info, detection_window_time, w_smooth = 25):
   bundle = {}
   # TODO should abstract away normalization.
   for topic in ts_info:
@@ -490,8 +490,10 @@ def ts_bundle(ts_info, detection_window_time):
     tsw = ts.ts_in_window(start,end)
     # Add eps as a fudge factor, since we're taking log. TODO
     #bundle[topic] = Timeseries(tsw.times, np.cumsum(tsw.values) + 0.01)
-    bundle[topic] = Timeseries(tsw.times,
-      np.convolve(np.array(tsw.values), np.ones(25,), mode = 'same') + 0.01)
+    smoothed = np.convolve(np.array(tsw.values), np.ones(w_smooth,),
+                           mode = 'full')
+    smoothed = smoothed[0:len(tsw.values)] + 0.01
+    bundle[topic] = Timeseries(tsw.times, smoothed)
   return bundle
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
@@ -510,8 +512,8 @@ def ts_split_training_test(ts_info, test_frac):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.1,
                     cmpr_window = 30):
-  #np.random.seed(31953)
-  p_sample = 0.25
+  np.random.seed(31953)
+  p_sample = 0.05
   print 'pos', len(ts_info_pos)
   print 'neg', len(ts_info_neg)
 
@@ -535,48 +537,91 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.1,
   ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
 
   # Construct smoothed timeseries.
-  pos_train_topics = ts_info_pos_train.keys()
-  N = len(ts_info_pos_train[pos_train_topics[0]]['ts'].values)
-  npos = len(ts_info_pos_train)
-  nneg = len(ts_info_neg_train)
-  bundle_pos = np.zeros((npos, N))
-  bundle_neg = np.zeros((nneg, N))
-  w_avg = 20
+  print 'Creating bundles...'
+  w_smooth = 20
+  detection_window_time = 6 * 3600 * 1000
+  bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time,
+                         w_smooth = w_smooth)
+  bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time,
+                         w_smooth = w_smooth)
+  pos_topics = ts_info_pos_train.keys()
+  N = len(ts_info_pos_train[pos_topics[0]]['ts'].values)
+  pos_topics_bundle = bundle_pos.keys()
+  N_bundle = len(bundle_pos[pos_topics_bundle[0]].values)
 
-  for (ti, topic) in enumerate(ts_info_pos_train):
-    y = np.convolve(ts_info_pos_train[topic]['ts'].values, np.ones(w_avg,), 'full')
-    bundle_pos[ti,:] = y[0:N] + 0.01
-  for (ti, topic) in enumerate(ts_info_neg_train):
-    y = np.convolve(ts_info_neg_train[topic]['ts'].values, np.ones(w_avg,), 'full')
-    bundle_neg[ti,:] = y[0:N] + 0.01
+  # Function to compute timeseries norm
+  ts_norm_func = ts_mean_median_norm_func(0.5,0.5)
 
   plt.ion()    
-  for topic in ts_info_pos_test:
-    ts = ts_info_pos_test[topic]['ts'].values 
-    tss = np.convolve(ts, np.ones(w_avg), 'full')
-    tss = tss[0:N]
-    for i in xrange(len(tss) - cmpr_window):
-      tsw = np.array(tss[i:i+cmpr_window]) + 0.01
-      if np.min(tsw) < 0.1:
-        continue
-      plt.plot(tsw)
-      raw_input()
+  plot = False
+  for test_topic in ts_info_pos_test:
+    # Normalize
+    
+    # Smooth
+    tsobj = ts_info_pos_test[test_topic]['ts']
+    ts = tsobj.values    
+    trend_start = ts_info_pos_test[test_topic]['trend_start']
+    trend_start_index = tsobj.time_to_index(trend_start)
+    detection_window_size = tsobj.dtime_to_dindex(detection_window_time)
+    print trend_start_index - detection_window_size, trend_start_index
+
+    for i in np.arange(trend_start_index - detection_window_size,
+                       trend_start_index, 5):
+      # Normalize timeseries using data up to current index (i + cmpr_window)
+      ts_norm = ts_norm_func(ts[0:i+cmpr_window])
+      # Take chunk of timeseries in comparison window and smooth it.
+      tsw = np.array(ts[i:i+cmpr_window])
+      tsw = np.convolve(tsw, np.ones(w_smooth), 'full')
+      tsw = tsw[0:cmpr_window] + 0.01
+      if plot:
+        if min(tsw) < 0.1:
+          continue
       # Compute minimum distances to each curve
-      for ti in xrange(len(bundle_pos)):
-        dists = [ ts_dist_func(tsw, bundle_pos[ti,j:j+cmpr_window]) 
-                  for j in range(N-cmpr_window) ]
-        #plt.plot(dists)
-        #plt.hold(True)
-        #plt.plot(bundle_pos[ti,:], color = 'k')
+      min_dists_pos = []
+      min_dists_neg = []
+      for train_topic in bundle_pos:
+        dists = [ ts_dist_func(tsw,
+                               bundle_pos[train_topic].values[j:j+cmpr_window]) 
+                  for j in range(N_bundle-cmpr_window) ]
         jmin = np.argmin(dists)
-        print jmin
-        #plt.semilogy(bundle_pos[ti,jmin:jmin+cmpr_window])
-        #plt.hold(True)
-        #plt.semilogy(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
-        #             linewidth = 2)
-        #plt.hold(False)
-        #raw_input()
-        
+        min_dist = dists[jmin]
+        min_dists_pos.append(min_dist)
+        if plot:
+          print jmin, min_dist
+          plt.semilogy(bundle_pos[train_topic].values)
+          plt.hold(True)
+          plt.semilogy(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
+                       linewidth = 2)
+          plt.title('Trajectories and Closest Matches (Positive)')
+
+      if plot:
+        raw_input()
+        plt.hold(False)
+
+      for train_topic in bundle_neg:
+        dists = [ ts_dist_func(tsw,
+                               bundle_neg[train_topic].values[j:j+cmpr_window]) 
+                  for j in range(N_bundle-cmpr_window) ]
+        jmin = np.argmin(dists)
+        min_dist = dists[jmin]
+        min_dists_neg.append(min_dist)
+        if plot:
+          print jmin, min_dist
+          
+          plt.semilogy(bundle_neg[train_topic].values)
+          plt.hold(True)
+          plt.semilogy(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
+                       linewidth = 2)
+          plt.title('Trajectories and Closest Matches (Negative)')
+
+      if plot:
+        raw_input()
+        plt.hold(False)
+      
+      print i, '/', trend_start_index, \
+          np.mean( [exp(-d) for d in min_dists_pos] ) / \
+          np.mean( [exp(-d) for d in min_dists_neg] )
+
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_dist_func(a, b):
