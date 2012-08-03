@@ -411,11 +411,7 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
           plt.setp(stemlines, 'color', 'k')
 
       plt.show()
-
-#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_shift_detect(ts_info_pos, ts_info_neg):
-  pass
-
+  
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
   topics_pos = ts_info_pos_orig.keys()
@@ -431,6 +427,8 @@ def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
     for topic in topics_pos:
       if np.random.rand() > r:
         ts_info_pos[topic] = ts_info_pos_orig[topic]
+    for topic in topics_neg:
+      ts_info_neg[topic] = ts_info_neg_orig[topic]
   else:
     more_pos = False
     r = (len(ts_info_neg_orig) - len(ts_info_pos_orig)) / \
@@ -438,6 +436,8 @@ def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
     for topic in topics_neg:
       if np.random.rand() > r:
         ts_info_neg[topic] = ts_info_neg_orig[topic]
+    for topic in topics_pos:
+      ts_info_pos[topic] = ts_info_pos_orig[topic]
 
   return ts_info_pos, ts_info_neg
 
@@ -448,7 +448,7 @@ def ts_normalize(ts_info_orig, ts_norm_func):
   ts_info = {}
   method = 'offline'
   for (i, topic) in enumerate(ts_info_orig):
-    print topic, ' ', (i + 1), '/', len(ts_info)
+    print topic, ' ', (i + 1), '/', len(ts_info_orig)
     ts = ts_info_orig[topic]['ts']
     ts_info[topic] = {}
     if method is 'online':
@@ -497,13 +497,91 @@ def ts_bundle(ts_info, detection_window_time):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_split_training_test(ts_info, test_frac):
   # Split into training and test
-  ts_info_train = ts_info
-  topics = ts_info.keys()
+  ts_info_train = {}
   ts_info_test = {}
-  for topic in topics:
+  topics = ts_info.keys()
+  for topic in ts_info:
     if np.random.rand() < test_frac:
-      ts_info_test[topic] = ts_info_train.pop(topic)
+      ts_info_test[topic] = ts_info[topic]
+    else:
+      ts_info_train[topic] = ts_info[topic]
   return ts_info_train, ts_info_test
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.1,
+                    cmpr_window = 30):
+  #np.random.seed(31953)
+  p_sample = 0.25
+  print 'pos', len(ts_info_pos)
+  print 'neg', len(ts_info_neg)
+
+  print 'Sampling data...'
+  ts_info_pos = ts_sample_topics(ts_info_pos, p_sample)
+  ts_info_neg = ts_sample_topics(ts_info_neg, p_sample)
+
+  print 'Balancing data...'
+  ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
+
+  print 'Splitting into training and test...'
+  ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
+                                                               test_frac)
+  ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
+                                                               test_frac)
+
+  # Normalize only training timeseries a priori (TODO: do it online)
+  ts_norm_func = ts_mean_median_norm_func(0.5, 0.5)
+  print 'Normalizing...'
+  ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
+  ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
+
+  # Construct smoothed timeseries.
+  pos_train_topics = ts_info_pos_train.keys()
+  N = len(ts_info_pos_train[pos_train_topics[0]]['ts'].values)
+  npos = len(ts_info_pos_train)
+  nneg = len(ts_info_neg_train)
+  bundle_pos = np.zeros((npos, N))
+  bundle_neg = np.zeros((nneg, N))
+  w_avg = 20
+
+  for (ti, topic) in enumerate(ts_info_pos_train):
+    y = np.convolve(ts_info_pos_train[topic]['ts'].values, np.ones(w_avg,), 'full')
+    bundle_pos[ti,:] = y[0:N] + 0.01
+  for (ti, topic) in enumerate(ts_info_neg_train):
+    y = np.convolve(ts_info_neg_train[topic]['ts'].values, np.ones(w_avg,), 'full')
+    bundle_neg[ti,:] = y[0:N] + 0.01
+
+  plt.ion()    
+  for topic in ts_info_pos_test:
+    ts = ts_info_pos_test[topic]['ts'].values 
+    tss = np.convolve(ts, np.ones(w_avg), 'full')
+    tss = tss[0:N]
+    for i in xrange(len(tss) - cmpr_window):
+      tsw = np.array(tss[i:i+cmpr_window]) + 0.01
+      if np.min(tsw) < 0.1:
+        continue
+      plt.plot(tsw)
+      raw_input()
+      # Compute minimum distances to each curve
+      for ti in xrange(len(bundle_pos)):
+        dists = [ ts_dist_func(tsw, bundle_pos[ti,j:j+cmpr_window]) 
+                  for j in range(N-cmpr_window) ]
+        #plt.plot(dists)
+        #plt.hold(True)
+        #plt.plot(bundle_pos[ti,:], color = 'k')
+        jmin = np.argmin(dists)
+        print jmin
+        #plt.semilogy(bundle_pos[ti,jmin:jmin+cmpr_window])
+        #plt.hold(True)
+        #plt.semilogy(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
+        #             linewidth = 2)
+        #plt.hold(False)
+        #raw_input()
+        
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_dist_func(a, b):
+  return np.sqrt(
+    np.sum( [(log(a[i]) - log(b[i])) ** 2 for i in range(len(b)) ]))
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos_orig, ts_info_neg_orig, threshold = 1, test_frac = 0.05,
@@ -565,6 +643,7 @@ def ts_detect(ts_info_pos_orig, ts_info_neg_orig, threshold = 1, test_frac = 0.0
     plt.figure()
     plt.hold(False)
     plt.show()
+
   # Number of contiguous samples to use to compare two volume trajectories.
   cmpr_window = 1
   for type in tests:
@@ -756,7 +835,6 @@ def ts_sample_topics(ts_info_orig, p_sample):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos):
-  
   plt.ioff()
 
   colors = [(0,0,1), (1,0,0)]
