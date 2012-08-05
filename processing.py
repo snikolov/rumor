@@ -471,6 +471,11 @@ def ts_mean_median_norm_func(mean_weight, median_weight):
   return func
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def ts_pnorm_func(p = 2):
+  func = lambda x: np.linalg.norm(x, ord = p)
+  return func
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Create timeseries bundles.
 def ts_bundle(ts_info, detection_window_time, w_smooth = 25):
   bundle = {}
@@ -512,33 +517,33 @@ def ts_split_training_test(ts_info, test_frac):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
-                    cmpr_window = 30, gamma = 1):
-  """
-  TODO: 
-  o Plotting to see what's going on.
-  o Recording detections and scores.
-  o Make it fast.
-  """
+                    cmpr_window = 20, w_smooth = 60, gamma = 1, p_sample = 0.5,
+                    detection_step = 1, detection_window_hrs = 2):
+
   #np.random.seed(31953)
   #np.random.seed(334513)
-  p_sample = 0.5
-  print 'pos', len(ts_info_pos)
-  print 'neg', len(ts_info_neg)
 
-  print 'Sampling data...'
+  pnt = True
+  if pnt:
+    print 'Sampling data...'
   ts_info_pos = ts_sample_topics(ts_info_pos, p_sample)
   ts_info_neg = ts_sample_topics(ts_info_neg, p_sample)
 
-  print 'Balancing data...'
+  if pnt:
+    print 'Balancing data...'
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
 
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   
+  # HACK: pass in prenormalized versions
+  """
   # Normalize all timeseries.
   ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func)
   ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func)
+  """
 
-  print 'Splitting into training and test...'
+  if pnt:
+    print 'Splitting into training and test...'
   ts_info_pos_train, ts_info_pos_test = ts_split_training_test(ts_info_pos,
                                                                test_frac)
   ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
@@ -546,27 +551,28 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
 
   # Normalize only training timeseries a priori (TODO: do it online)
 
-  print 'Normalizing...'
+  if pnt:
+    print 'Normalizing...'
   #ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
   #ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
 
   # Construct smoothed timeseries.
-  print 'Creating bundles...'
+  if pnt:
+    print 'Creating bundles...'
   w_smooth = 60
-  detection_window_time = 2 * 3600 * 1000
+  detection_window_time = detection_window_hrs * 3600 * 1000
   bundle_pos = ts_bundle(ts_info_pos_train, detection_window_time,
                          w_smooth = w_smooth)
   bundle_neg = ts_bundle(ts_info_neg_train, detection_window_time,
                          w_smooth = w_smooth)
-  pos_topics = ts_info_pos_train.keys()
-  N = len(ts_info_pos_train[pos_topics[0]]['ts'].values)
   pos_topics_bundle = bundle_pos.keys()
   N_bundle = len(bundle_pos[pos_topics_bundle[0]].values)
 
   plt.ion()    
-  plot = True
+  plot = False
+
   if plot:
-    plt.figure(figsize = (5,10))
+    plt.figure(figsize = (8,8))
   # Run detection on each trajectory in the positive and negative test sets. For
   # the positive test trajectories, detection will be run in the interval of 2 *
   # detection_window_time centered at the trend onset. For negative test
@@ -575,9 +581,6 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   ts_info_tests = { 'pos': ts_info_pos_test, 'neg': ts_info_neg_test }
   bundles = { 'pos': bundle_pos, 'neg': bundle_neg }
   colors = { 'pos': 'b', 'neg': 'r' }
-  # TODO:
-  # Scores and detection times.
-  # Fix plotting holds.
 
   fp = 0
   fn = 0
@@ -586,14 +589,19 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   earlies = []
   lates = []
 
-  detection_step = 2
-  stop_when_detected = False
+  stop_when_detected = True
 
+  if pnt:
+    print 'Doing detection...'
   for test_type in ts_info_tests:
-    print 'Test type:', test_type
+    if pnt:
+      print '=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~'
+      print '# Test type:', test_type
+      print '=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~'
     ts_info_test = ts_info_tests[test_type]
-    for test_topic in ts_info_test:
-      print 'Test topic', test_topic
+    for (ti, test_topic) in enumerate(ts_info_test):
+      if pnt:
+        print '\nTest topic', test_topic
       detected = False
 
       tsobj = ts_info_test[test_topic]['ts']
@@ -615,27 +623,28 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
       # ts = (ts + 0.01) / (ts_norm_func(ts) + 0.01)
       ts_orig_len = len(ts)
       ts = np.convolve(ts, np.ones(w_smooth), 'full')
-      ts = [ log(v + 0.01) for v in ts[0:ts_orig_len] ]
+      ts = [ log(v + 0.01) for v in ts[w_smooth:ts_orig_len] ]
       for i in np.arange(0, len(ts) - cmpr_window, detection_step):
         tsw = ts[i:i+cmpr_window]
         # Compute minimum distances to each curve
         min_dists = { 'pos': [], 'neg': []}
         for bundle_type in bundles:
           bundle = bundles[bundle_type]
-          for train_topic in bundle:
-            dists = [ ts_dist_func(tsw,
-                                   bundle[train_topic].values[j:j+cmpr_window]) 
+          for train_topic in bundle:            
+            dists = [ ts_dist_func(
+                        tsw,
+                        bundle[train_topic].values[j:j+cmpr_window]) 
                       for j in range(N_bundle-cmpr_window) ]
             jmin = np.argmin(dists)
             min_dist = dists[jmin]
             min_dists[bundle_type].append(min_dist)
             if plot:
-              plt.subplot(311)
-              plt.semilogy(bundle[train_topic].values,
-                           color = colors[bundle_type])
+              plt.subplot(221)
+              plt.plot(bundle[train_topic].values,
+                       color = colors[bundle_type])
               plt.hold(True)
-              plt.semilogy(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
-                           linewidth = 4)
+              plt.plot(np.arange(jmin,jmin+cmpr_window,1), tsw, color = 'k',
+                       linewidth = 4)
               plt.title('Trajectories and Closest Matches (' + \
                          bundle_type + ')')
 
@@ -649,34 +658,51 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           plt.hold(False)
 
         if plot:
-          plt.subplot(312)
+          plt.subplot(222)
           plt.plot(sorted(min_dists['pos']), 'b')
           plt.hold(True)
           plt.plot(sorted(min_dists['neg']), 'r')
           plt.title('Sorted distances')
           plt.hold(False)          
 
-          plt.subplot(313)
+          plt.subplot(223)
           plt.plot(np.cumsum(
               [ exp(-gamma * d) for d in sorted(min_dists['pos']) ]), 'b')
           plt.hold(True)
           plt.plot(np.cumsum(
               [ exp(-gamma * d) for d in sorted(min_dists['neg']) ]), 'r')
+          plt.hold(False)          
+
+          plt.subplot(224)
+          n, bins, patches = plt.hist(min_dists['pos'], bins = 50)
+          plt.setp(patches, 'facecolor', (0,0,1), 'alpha', 0.25)
+          plt.hold(True)
+          n, bins, patches = plt.hist(min_dists['neg'], bins = 50)
+          plt.setp(patches, 'facecolor', (1,0,0), 'alpha', 0.25)
+          plt.title('Histograms of distances')
           plt.hold(False)           
 
         if score < threshold:
-          # print i, '/', (len(ts) - cmpr_window), score
+          if pnt:
+            print i, '/', (len(ts) - cmpr_window), score
         else:
-          print i, '/', (len(ts) - cmpr_window), score, '-----------o'
+          if pnt:
+            print i, '/', (len(ts) - cmpr_window), score, '-----------o'
           detected = True
           # Detection and onset times (relative to start of detection window,
-          # not absolute!)
+          # not absolute! TODO/WARNING: Since we are using indices instead of
+          # explicit time, the correctness of these times depends on whether i
+          # is iterating through the whole detection window or some
+          # post-convolution slice of it.)
           detection_time = i * tsobj_d.tstep
           onset_time = tsobj_d.tstep * len(tsobj_d.values) / 2.0
-          if detection_time > onset_time:
-            lates.append(detection_time - onset_time)
-          else:
-            earlies.append(onset_time - detection_time)
+          # Record late or early detection. Note that this only makes sense for
+          # positive examples andwhen stop_when_detected is True.
+          if test_type is 'pos':
+            if detection_time > onset_time:
+              lates.append(detection_time - onset_time)
+            else:
+              earlies.append(onset_time - detection_time)
           if stop_when_detected:
             break
 
@@ -697,21 +723,27 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           fn += 1
         else:
           tn += 1
-      print 'fp so far', fp
-      print 'fn so far', fn
-      print 'tp so far', tp
-      print 'tn so far', tn
-      if len(earlies) > 0:
-        print 'mean early', np.mean(earlies)
-        print 'std early', np.std(earlies)
-      if len(earlies) > 0:
-        print 'mean late', np.mean(lates)
-        print 'std late', np.std(lates)
-      if tn + fp > 0:
-        print 'fpr so far: ', (fp / float(tn + fp))
-      if fn + tp > 0:
-        print 'tpr so far: ', (tp / float(fn + tp))
-      
+          
+      if not ti % 2:
+        print 'fp so far', fp
+        print 'fn so far', fn
+        print 'tp so far', tp
+        print 'tn so far', tn
+        if len(earlies) > 0:
+          print 'mean early', np.mean(earlies) / (3600 * 1000)
+          print 'std early', np.std(earlies) / (3600 * 1000)
+        if len(lates) > 0:
+          print 'mean late', np.mean(lates) / (3600 * 1000)
+          print 'std late', np.std(lates) / (3600 * 1000)
+        if tn + fp > 0:
+          print 'fpr so far: ', (fp / float(tn + fp))
+        if fn + tp > 0:
+          print 'tpr so far: ', (tp / float(fn + tp))
+
+  if tn + fp > 0:
+    print 'final fpr: ', (fp / float(tn + fp))
+  if fn + tp > 0:
+    print 'final tpr: ', (tp / float(fn + tp))
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_dist_func(a, b):
@@ -721,18 +753,17 @@ def ts_dist_func(a, b):
   if (a[i1] - b[i1]) ** 2 > 30 and abs(a[i2] - b[i2]) > 30:
     return 99999999.9
   """
+  
   """
   if abs(max(a) - max(b)) + abs(min(a) - min(b)) > 200:
     return 999999.9
   """
-  
-  return sqrt( sum( [ (a[i] - b[i]) ** 2 for i in range(len(b)) ] ) )
+  """
+  return sqrt(sum( [ (a[i] - b[i]) ** 2 for i in range(len(b)) ] ))
+  """
+  return sqrt( sum( [ (a[i] - b[i]) ** 2 
+                      for i in np.arange(0, len(b), 1) ]))
 
-  """
-  return np.sqrt(
-    np.mean( [ (a[i] - b[i]) ** 2 
-              for i in [0, int(len(b)/2), len(b)-1] ]))
-  """
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos_orig, ts_info_neg_orig, threshold = 1,
               test_frac = 0.05, ts_norm_func = None):
@@ -988,14 +1019,35 @@ def viz_timeseries(ts_infos):
   plt.ion()
   plt.close('all')
   colors = [(0,0,1), (1,0,0)]
-  rand_colors = True
+  rand_colors = False
   detection_window_time = 2 * 3600 * 1000
-  ts_norm_func = ts_mean_median_norm_func(0, 1)
+  #ts_norm_func = ts_mean_median_norm_func(1, 0)
+  ts_norm_func = ts_pnorm_func(p = 1)
+
   bundles = {}
-  w_smooth = 60
+  w_smooth = 100
   for (i, ts_info) in enumerate(ts_infos):
     # Sample
-    ts_info = ts_sample_topics(ts_info, 0.1)
+    ts_info = ts_sample_topics(ts_info, 0.3)
+    
+    """
+    color = colors[i]
+    for t in ts_info:
+      ts = ts_info[t]['ts']
+      plt.plot(ts.times, ts.values, color = color)
+      plt.hold(True)
+      ts_norm = ts_norm_func(ts.values)
+      print 'timeseries norm', ts_norm
+      plt.plot(ts.times, ts_norm * np.ones(len(ts.times)),
+               color = 'k', linewidth = 2)
+      raw_input()
+      ts_normalized = (np.array(ts.values) + 0.01) / (ts_norm + 0.01)
+      #ts_normalized = [max(0, v) for v in np.array(ts.values) - ts_norm]
+      plt.plot(ts.times, ts_normalized, color = 'k', linestyle = '--')
+      plt.hold(False)
+      raw_input()
+    """
+
     # Normalize.
     ts_info = ts_normalize(ts_info, ts_norm_func)
     # Create bundles.
@@ -1006,13 +1058,16 @@ def viz_timeseries(ts_infos):
     for t in bundle:
       if rand_colors:
         color = (np.random.rand(), np.random.rand(), np.random.rand())
-      plt.semilogy(np.array(bundle[t].times) - bundle[t].tmin,
+      plt.plot(np.array(bundle[t].times) - bundle[t].tmin,
                    bundle[t].values, hold = 'on', linewidth = 1,
                    color = color)
+      """
       plt.draw()
       plt.title(t)
       sleep(1)
-
+      """
+      plt.draw()
+      
   plot_hist = False
   if plot_hist:
     for time in np.linspace(0, detection_window_time - 1, 20):
