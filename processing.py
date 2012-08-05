@@ -517,8 +517,9 @@ def ts_split_training_test(ts_info, test_frac):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
-                    cmpr_window = 20, w_smooth = 60, gamma = 1, p_sample = 0.5,
-                    detection_step = 1, detection_window_hrs = 2):
+                    cmpr_window = 20, cmpr_step = 5, w_smooth = 60, gamma = 1,
+                    p_sample = 0.5, detection_step = 1, min_dist_step = 5,
+                    detection_window_hrs = 2):
 
   #np.random.seed(31953)
   #np.random.seed(334513)
@@ -601,7 +602,7 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
     ts_info_test = ts_info_tests[test_type]
     for (ti, test_topic) in enumerate(ts_info_test):
       if pnt:
-        print '\nTest topic', test_topic
+        print '\nTest topic', test_topic, (ti + 1), '/', len(ts_info_test)
       detected = False
 
       tsobj = ts_info_test[test_topic]['ts']
@@ -631,10 +632,11 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
         for bundle_type in bundles:
           bundle = bundles[bundle_type]
           for train_topic in bundle:            
-            dists = [ ts_dist_func(
-                        tsw,
-                        bundle[train_topic].values[j:j+cmpr_window]) 
-                      for j in range(N_bundle-cmpr_window) ]
+            dists = \
+              [ ts_dist_func(
+                  tsw,
+                  bundle[train_topic].values[j:j+cmpr_window]) 
+                for j in np.arange(0, N_bundle-cmpr_window, min_dist_step) ]
             jmin = np.argmin(dists)
             min_dist = dists[jmin]
             min_dists[bundle_type].append(min_dist)
@@ -746,7 +748,7 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
     print 'final tpr: ', (tp / float(fn + tp))
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_dist_func(a, b):
+def ts_dist_func(a, b, cmpr_step = 1):
   """
   i1 = int(np.random.rand() * len(a))
   i2 = int(np.random.rand() * len(a))
@@ -762,7 +764,7 @@ def ts_dist_func(a, b):
   return sqrt(sum( [ (a[i] - b[i]) ** 2 for i in range(len(b)) ] ))
   """
   return sqrt( sum( [ (a[i] - b[i]) ** 2 
-                      for i in np.arange(0, len(b), 1) ]))
+                      for i in np.arange(0, len(b), cmpr_step) ]))
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_detect(ts_info_pos_orig, ts_info_neg_orig, threshold = 1,

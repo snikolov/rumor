@@ -51,6 +51,8 @@ Explicit generative model? Mixture model?
 
 In principle, no tunable threshold required, because of explicit probabilistic model, threshold is just 1.
 
+Experimental results note. It could just be that the false positive rate is all of the things that have high volume that we weren't able to normalize away, except that there's only a few of them, so maybe what we're doing is not that impressive. However, if we compare to the unnormalized ones, we do (get solid confirmation) much better. 
+
 \section{My Approach}
 Simple models prove ineffective when exposed to the vast variety of real world situations. [SAY MORE ABOUT THIS] I propose a nonparametric framework for doing inference on timeseries (VAGUE). In this model, we posit that there exist of a set of latent timeseries, each corresponding to a prototypical event of a certain type, and that each observed timeseries is a noisy observation of one of the latent timeseries.
 
