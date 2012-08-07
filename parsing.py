@@ -4,9 +4,14 @@ import os
 import time
 import util
 
-from gexf import Gexf
 from subprocess import call
 from timeseries import *
+
+try:
+  from gexf import Gexf
+  Gexf_loaded = True
+except ImportError:
+  Gexf_loaded = False
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_trend_onset(path):
@@ -202,55 +207,74 @@ def parse_timeseries(path):
       print 'File', file, 'is directory. Skipping...'
       continue
     f = open(os.path.join(path,file), 'r')
-    line = f.readline()
-    while line:
-      fields = line_to_fields(line)
-      if len(fields) != 6:
-        # print 'Bad line', line, '. Skipping...'
-        line = f.readline()
-        continue
-      if any([field is '' for field in fields]):
-        # print 'Bad line', line, '. Skipping...'
-        line = f.readline()
-        continue
-      topic = fields[0]
-      time = float(fields[1])
-      trend_start = float(fields[2])
-      trend_end = float(fields[3])
-      ts_value = float(fields[4])
-      if topic not in topic_info:
-        topic_info[topic] = {}
-        topic_info[topic]['ts_dict'] = {}
-      if int(time) in topic_info[topic]['ts_dict']:
-        topic_info[topic]['ts_dict'][int(time)] += ts_value
-      else:
-        topic_info[topic]['ts_dict'][int(time)] = ts_value
+    parse_timeseries_from_file(f, topic_info)
+  
+  insert_timeseries_objects(topic_info)
 
-      # Convention is that if start and end are 0, they're just placeholders and
-      # there is no meaningful start or end.
-      if trend_start == 0 and trend_end == 0:
-        trend_start = None
-        trend_end = None
-        
-      topic_info[topic]['trend_start'] = trend_start
-      topic_info[topic]['trend_end'] = trend_end
-      line = f.readline()
+  return topic_info
 
-  all_times = sorted(list(set([ t for l in [ times.keys() for times in [ topic_info[topic]['ts_dict'] for topic in topic_info] ] for t in l])))
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def insert_timeseries_objects(topic_info):
+  all_times = sorted(
+    list(
+      set(
+        [ t for l in 
+          [ times.keys() for times in 
+            [ topic_info[topic]['ts_dict'] for topic in topic_info] ] 
+          for t in l])))
 
   # TODO: Hardcode timestep for now.
   tstep = 120000
-  
+
   for ti, topic in enumerate(topic_info):
     topic_info[topic]['ts'] = Timeseries(ts_dict = topic_info[topic]['ts_dict'], 
                                          tmin = min(all_times),
                                          tmax = max(all_times) + tstep,
                                          tstep = tstep)    
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def parse_timeseries_from_file(f, topic_info):
+  line = f.readline()
+  while line:
+    fields = line_to_fields(line)
+    if len(fields) != 6:
+      # print 'Bad line', line, '. Skipping...'
+      line = f.readline()
+      continue
+    if any([field is '' for field in fields]):
+      # print 'Bad line', line, '. Skipping...'
+      line = f.readline()
+      continue
+    topic = fields[0]
+    time = float(fields[1])
+    trend_start = float(fields[2])
+    trend_end = float(fields[3])
+    ts_value = float(fields[4])
+    if topic not in topic_info:
+      topic_info[topic] = {}
+      topic_info[topic]['ts_dict'] = {}
+    if int(time) in topic_info[topic]['ts_dict']:
+      topic_info[topic]['ts_dict'][int(time)] += ts_value
+    else:
+      topic_info[topic]['ts_dict'][int(time)] = ts_value
+
+    # Convention is that if start and end are 0, they're just placeholders and
+    # there is no meaningful start or end.
+    if trend_start == 0 and trend_end == 0:
+      trend_start = None
+      trend_end = None
+
+    topic_info[topic]['trend_start'] = trend_start
+    topic_info[topic]['trend_end'] = trend_end
+    line = f.readline()
   return topic_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Builds gexf graph from timestamped edges
 def build_gexf(path, out_name, p_sample = 1):
+  if not Gexf_loaded:
+    print 'Could not import Gexf from gexf module.'
+    return
   graphs = {}
   gexfs = {}
   call(['mkdir', 'data/graphs/' + out_name])

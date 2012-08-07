@@ -6,11 +6,16 @@ import matplotlib.pyplot as plt
 import sys
 import util
 
-from gexf import Gexf
 from math import log, exp, sqrt
 from subprocess import call
 from time import sleep
 from timeseries import *
+
+try:
+  from gexf import Gexf
+  Gexf_loaded = True
+except ImportError:
+  Gexf_loaded = False
 
 np.seterr(all = 'raise')
 
@@ -519,7 +524,7 @@ def ts_split_training_test(ts_info, test_frac):
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
                     cmpr_window = 20, cmpr_step = 1, w_smooth = 60, gamma = 1,
                     p_sample = 0.5, detection_step = 1, min_dist_step = 1,
-                    detection_window_hrs = 2):
+                    detection_window_hrs = 2, req_consec_detections = 1):
 
   #np.random.seed(31953)
   #np.random.seed(334513)
@@ -537,11 +542,13 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   
   # HACK: pass in prenormalized versions
-  """
+  
   # Normalize all timeseries.
+  if pnt:
+    print 'Normalizing...'
   ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func)
   ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func)
-  """
+  
 
   if pnt:
     print 'Splitting into training and test...'
@@ -549,14 +556,6 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
                                                                test_frac)
   ts_info_neg_train, ts_info_neg_test = ts_split_training_test(ts_info_neg,
                                                                test_frac)
-
-  # Normalize only training timeseries a priori (TODO: do it online)
-
-  if pnt:
-    print 'Normalizing...'
-  #ts_info_pos_train = ts_normalize(ts_info_pos_train, ts_norm_func)
-  #ts_info_neg_train = ts_normalize(ts_info_neg_train, ts_norm_func)
-
   # Construct smoothed timeseries.
   if pnt:
     print 'Creating bundles...'
@@ -592,7 +591,6 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   lates = []
 
   stop_when_detected = True
-  req_consec_detections = 2
   num_consec_detections = 0
 
   if pnt:
@@ -757,13 +755,26 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           print 'std late', np.std(lates) / (3600 * 1000)
         if tn + fp > 0:
           print 'fpr so far: ', (fp / float(tn + fp))
+          """
+          if test_type is 'neg':
+            plt.scatter([test_index], [(fp / float(tn + fp))], c = 'r')
+            plt.draw()
+            plt.hold(True)
+          """
         if fn + tp > 0:
           print 'tpr so far: ', (tp / float(fn + tp))
-
+          """
+          if test_type is 'pos':
+            plt.scatter([test_index], [(tp / float(fn + tp))], c = 'b')
+            plt.draw()
+            plt.hold(True)
+          """
+   
   if tn + fp > 0:
     print 'final fpr: ', (fp / float(tn + fp))
   if fn + tp > 0:
     print 'final tpr: ', (tp / float(fn + tp))
+  return (fp / float(tn + fp)), (tp / float(fn + tp))
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_dist_func(a, b, cmpr_step = 1):
@@ -1111,6 +1122,9 @@ def viz_timeseries(ts_infos):
       raw_input()
 
 def build_gexf(edges, out_name, p_sample = 1):
+  if not Gexf_loaded:
+    print 'Could not load Gexf from module gexf.'
+    return
   gexf = Gexf("snikolov", out_name)
   graph = gexf.addGraph('directed', 'dynamic', out_name)
   end = str(max([edge[2] for edge in edges]))
