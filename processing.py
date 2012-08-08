@@ -450,6 +450,17 @@ def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
   # TODO: This became really slow. Profile!!
+  """
+  if mode is 'offline':
+    return dict([
+        [ topic, { 'ts': Timeseries(ts_info_orig[topic]['ts'].times, 
+                                    [ (v + 0.01) / (ts_norm_func(ts_info_orig[topic]['ts'].values) + 0.01) 
+                                      for v in ts_info_orig[topic]['ts'].values ]),
+                   'trend_start': ts_info_orig[topic]['trend_start'],
+                   'trend_end': ts_info_orig[topic]['trend_end'] }] 
+          for topic in ts_info_orig ])
+  """
+
   # Normalize all timeseries
   ts_info = {}
   for (i, topic) in enumerate(ts_info_orig):
@@ -457,11 +468,10 @@ def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
     ts = ts_info_orig[topic]['ts']
     ts_info[topic] = {}
     if mode is 'online':
-      norm_values = np.zeros((len(ts.values), 1))
       norm_values = \
-          [ ((ts.values[i] + 0.01) / (ts_norm_func(ts.values[0:i + 1]) + 0.01)) ** beta
+          [ ((ts.values[i] + 0.01) / (ts_norm_func(ts.values[0:i+1]) + 0.01)) ** beta
             for i in range(len(ts.values)) ]
-    else:
+    elif mode is 'offline':
       ts_norm = ts_norm_func(ts.values)
       norm_values = \
           [ ((v + 0.01) / (ts_norm + 0.01)) ** beta for v in ts.values ]
@@ -469,6 +479,7 @@ def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
     ts_info[topic]['trend_start'] = ts_info_orig[topic]['trend_start']
     ts_info[topic]['trend_end'] = ts_info_orig[topic]['trend_end']
   return ts_info
+
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_mean_median_norm_func(mean_weight, median_weight):

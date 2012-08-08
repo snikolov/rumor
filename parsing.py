@@ -51,11 +51,15 @@ def parse_edges_sampled(path, p):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def line_to_fields(line):
-  clean_fields = []
-  fields = re.split('\t', line)
-  for field in fields:
-    clean_fields.append(re.sub('\n', '', field))
-  return clean_fields
+  fields = re.split('\t|\n', line)
+  # Last element of fields is expected to be a \n.
+  return fields[0:-1]
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def line_to_fields_precomp(line, reg):
+  fields = reg.split(line)
+  # Last element of fields is expected to be a \n.
+  return fields[0:-1]
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_edges_node_sampled(path, sample_nodes):
@@ -234,9 +238,11 @@ def insert_timeseries_objects(topic_info):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def parse_timeseries_from_file(f, topic_info):
+  # Precompile the line splitting regex.
+  reg = re.compile('\t|\n')
   line = f.readline()
   while line:
-    fields = line_to_fields(line)
+    fields = line_to_fields_precomp(line, reg)
     if len(fields) != 6:
       # print 'Bad line', line, '. Skipping...'
       line = f.readline()
