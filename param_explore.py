@@ -19,6 +19,7 @@ jid = cloud.call(detect, 'statuses_news_rates_2m', 'statuses_nonviral_rates_2m',
                  cmpr_step = 10,
                  gamma = 1,
                  p_sample = 0.15,
-                 test_frac = 0.1))
+                 test_frac = 0.1,
+                 _type = 'm1')
 
 print cloud.result(jid)
