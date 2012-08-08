@@ -211,7 +211,7 @@ def parse_timeseries(path):
       print 'File', file, 'is directory. Skipping...'
       continue
     f = open(os.path.join(path,file), 'r')
-    parse_timeseries_from_file(f, topic_info)
+    parse_timeseries_from_file_opt(f, topic_info)
   
   insert_timeseries_objects(topic_info)
 
@@ -273,6 +273,41 @@ def parse_timeseries_from_file(f, topic_info):
     topic_info[topic]['trend_start'] = trend_start
     topic_info[topic]['trend_end'] = trend_end
     line = f.readline()
+  return topic_info
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+# Same as parse_timeseries_from_file, but reads the whole file with read()
+# rather than line by line.
+def parse_timeseries_from_file_opt(f, topic_info):
+  # Precompile the line splitting regex.
+  reg = re.compile('\t')
+  lines = re.split('\n', f.read())
+  field_lists = [ reg.split(line) for line in lines ]
+  field_lists = [ fields for fields in field_lists 
+                  if (len(fields) == 6 and not any([v is '' for v in fields])) ]
+
+  for fields in field_lists:
+    topic = fields[0]
+    time = float(fields[1])
+    trend_start = float(fields[2])
+    trend_end = float(fields[3])
+    ts_value = float(fields[4])
+    if topic not in topic_info:
+      topic_info[topic] = {}
+      topic_info[topic]['ts_dict'] = {}
+    if int(time) in topic_info[topic]['ts_dict']:
+      topic_info[topic]['ts_dict'][int(time)] += ts_value
+    else:
+      topic_info[topic]['ts_dict'][int(time)] = ts_value
+
+    # Convention is that if start and end are 0, they're just placeholders and
+    # there is no meaningful start or end.
+    if trend_start == 0 and trend_end == 0:
+      trend_start = None
+      trend_end = None
+
+    topic_info[topic]['trend_start'] = trend_start
+    topic_info[topic]['trend_end'] = trend_end
   return topic_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
