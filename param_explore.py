@@ -2,10 +2,8 @@ import rumor
 import cloud
 
 def detect(pos_path, neg_path, **kwargs):
-  f_pos = cloud.getf(pos_path)
-  f_neg = cloud.getf(neg_path)
-  pos = rumor.parsing.parse_timeseries_from_file(f_pos, {})
-  neg = rumor.parsing.parse_timeseries_from_file(f_neg, {})
+  pos = rumor.parsing.parse_timeseries_from_file(cloud.files.getf(pos_path), {})
+  neg = rumor.parsing.parse_timeseries_from_file(cloud.files.getf(neg_path), {})
   rumor.parsing.insert_timeseries_objects(pos)
   rumor.parsing.insert_timeseries_objects(neg)
 
