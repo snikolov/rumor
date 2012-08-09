@@ -549,14 +549,14 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
     # 10 detection steps.
     detection_step = int(
       ceil(
-        (int(2 * detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 10))
+        (int(2 * detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 10.0))
   if cmpr_step is None:
     # 5 points of comparison between trajectory pieces.
-    cmpr_step = int(ceil(cmpr_window / 5))
+    cmpr_step = int(ceil(cmpr_window / 5.0))
   if min_dist_step is None:
     min_dist_step = int(
       ceil(
-        (int(detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 15))
+        (int(detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 15.0))
 
   pnt = False
   if pnt:
@@ -574,8 +574,8 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   if normalize:
     if pnt:
       print 'Normalizing...'
-    ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func)
-    ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func)
+    ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func, beta = 1)
+    ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func, beta = 1)
 
   if pnt:
     print 'Splitting into training and test...'
