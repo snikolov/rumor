@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import sys
 import util
 
-from math import log, exp, sqrt
+from math import log, exp, sqrt, ceil
 from subprocess import call
 from time import sleep
 from timeseries import *
@@ -535,13 +535,28 @@ def ts_split_training_test(ts_info, test_frac):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
-                    cmpr_window = 20, cmpr_step = 1, w_smooth = 60, gamma = 1,
-                    p_sample = 0.5, detection_step = 1, min_dist_step = 1,
+                    cmpr_window = 20, cmpr_step = None, w_smooth = 60, gamma = 1,
+                    p_sample = 0.5, detection_step = None, min_dist_step = None,
                     detection_window_hrs = 2, req_consec_detections = 1,
                     normalize = True):
 
   #np.random.seed(31953)
   #np.random.seed(334513)
+
+  # TODO: this is ugly...
+  tstep = ts_info_pos[ts_info_pos.keys()[0]]['ts'].tstep
+  if detection_step is None:
+    # 10 detection steps.
+    detection_step = int(
+      ceil(
+        (int(2 * detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 10))
+  if cmpr_step is None:
+    # 5 points of comparison between trajectory pieces.
+    cmpr_step = int(ceil(cmpr_window / 5))
+  if min_dist_step is None:
+    min_dist_step = int(
+      ceil(
+        (int(detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 15))
 
   pnt = False
   if pnt:
