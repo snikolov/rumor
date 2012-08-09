@@ -473,9 +473,11 @@ def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
             for i in range(len(ts.values)) ]
     elif mode is 'offline':
       ts_norm = ts_norm_func(ts.values)
+      norm_times = ts.times
       norm_values = \
           [ ((v + 0.01) / (ts_norm + 0.01)) ** beta for v in ts.values ]
-    ts_info[topic]['ts'] = Timeseries(ts.times, norm_values)
+    #ts_info[topic]['ts'] = Timeseries(norm_times, norm_values)
+    ts_info[topic]['ts'] = Timeseries(norm_times, norm_values).ddt().abs().pow(1.2)
     ts_info[topic]['trend_start'] = ts_info_orig[topic]['trend_start']
     ts_info[topic]['trend_end'] = ts_info_orig[topic]['trend_end']
   return ts_info
@@ -535,12 +537,13 @@ def ts_split_training_test(ts_info, test_frac):
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
                     cmpr_window = 20, cmpr_step = 1, w_smooth = 60, gamma = 1,
                     p_sample = 0.5, detection_step = 1, min_dist_step = 1,
-                    detection_window_hrs = 2, req_consec_detections = 1):
+                    detection_window_hrs = 2, req_consec_detections = 1,
+                    normalize = True):
 
   #np.random.seed(31953)
   #np.random.seed(334513)
 
-  pnt = True
+  pnt = False
   if pnt:
     print 'Sampling data...'
   ts_info_pos = ts_sample_topics(ts_info_pos, p_sample)
@@ -552,14 +555,12 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
 
   ts_norm_func = ts_mean_median_norm_func(0, 1)
   
-  # HACK: pass in prenormalized versions
-  
   # Normalize all timeseries.
-  if pnt:
-    print 'Normalizing...'
-  ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func)
-  ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func)
-  
+  if normalize:
+    if pnt:
+      print 'Normalizing...'
+    ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func)
+    ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func)
 
   if pnt:
     print 'Splitting into training and test...'
@@ -753,7 +754,7 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
         else:
           tn += 1
           
-      if not test_index % 1:
+      if pnt and not test_index % 1:
         print 'fp so far', fp
         print 'fn so far', fn
         print 'tp so far', tp
@@ -1057,7 +1058,7 @@ def ts_sample_topics(ts_info_orig, p_sample):
   return ts_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def viz_timeseries(ts_infos):
+def viz_timeseries(ts_infos, normalize = True):
   plt.ion()
   plt.close('all')
   colors = [(0,0,1), (1,0,0)]
@@ -1067,10 +1068,11 @@ def viz_timeseries(ts_infos):
   ts_norm_func = ts_pnorm_func(p = 1)
 
   bundles = {}
-  w_smooth = 200
+  w_smooth = 100
+  fig = plt.figure()
   for (i, ts_info) in enumerate(ts_infos):
     # Sample
-    ts_info = ts_sample_topics(ts_info, 0.3)
+    ts_info = ts_sample_topics(ts_info, 0.1)
     
     """
     color = colors[i]
@@ -1091,7 +1093,8 @@ def viz_timeseries(ts_infos):
     """
 
     # Normalize.
-    ts_info = ts_normalize(ts_info, ts_norm_func, beta = 0.5)
+    if normalize:
+      ts_info = ts_normalize(ts_info, ts_norm_func, beta = 1)
     # Create bundles.
     bundle = ts_bundle(ts_info, detection_window_time, w_smooth = w_smooth)
     bundles[i] = bundle
@@ -1110,10 +1113,25 @@ def viz_timeseries(ts_infos):
       """
     plt.draw()
 
-  raw_input()
-  plt.hold(False)    
-  plot_hist = True
+  plot_scatter = True
+  if plot_scatter:
+    raw_input()
+    plt.close(fig)
+    fig = plt.figure()
+    for i in bundles:
+      for topic in bundles[i]:
+        ts = bundles[i][topic].values
+        consec1 = [ ts[j] for j in range(len(ts) - 1) ]
+        consec2 = [ ts[j+1] - ts[j] for j in range(len(ts) - 1) ]
+        plt.scatter(consec1, consec2, color = colors[i])
+        plt.hold(True)
+      plt.draw()
+
+  plot_hist = False
   if plot_hist:
+    raw_input()
+    plt.close(fig)
+    fig = plt.figure()
     for time in np.linspace(0, detection_window_time - 1, 20):
       for i in bundles:
         hist = []
