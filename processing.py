@@ -545,18 +545,24 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
 
   # TODO: this is ugly...
   tstep = ts_info_pos[ts_info_pos.keys()[0]]['ts'].tstep
+
+  if cmpr_window >= detection_window_hrs * 3600 * 1000 / float(tstep):
+    # It doesn't make sense for the comparison window to be as big or bigger
+    # than the detection window.
+    return None
+
   if detection_step is None:
     # 10 detection steps.
     detection_step = int(
       ceil(
-        (int(2 * detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 10.0))
+        (int(2 * detection_window_hrs * 3600 * 1000 / float(tstep)) - cmpr_window) / 10.0))
   if cmpr_step is None:
     # 5 points of comparison between trajectory pieces.
     cmpr_step = int(ceil(cmpr_window / 5.0))
   if min_dist_step is None:
     min_dist_step = int(
       ceil(
-        (int(detection_window_hrs * 3600 * 1000 / tstep) - cmpr_window) / 15.0))
+        (int(detection_window_hrs * 3600 * 1000 / float(tstep)) - cmpr_window) / 15.0))
 
   pnt = False
   if pnt:
@@ -567,13 +573,13 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   if pnt:
     print 'Balancing data...'
   ts_info_pos, ts_info_neg = ts_balance_data(ts_info_pos, ts_info_neg)
-
-  ts_norm_func = ts_mean_median_norm_func(0, 1)
   
   # Normalize all timeseries.
   if normalize:
     if pnt:
       print 'Normalizing...'
+    # ts_norm_func = ts_mean_median_norm_func(0, 1)
+    ts_norm_func = ts_pnorm_func(p = 1)
     ts_info_pos = ts_normalize(ts_info_pos, ts_norm_func, beta = 1)
     ts_info_neg = ts_normalize(ts_info_neg, ts_norm_func, beta = 1)
 
@@ -801,7 +807,15 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
     print 'final fpr: ', (fp / float(tn + fp))
   if fn + tp > 0:
     print 'final tpr: ', (tp / float(fn + tp))
-  return (fp / float(tn + fp)), (tp / float(fn + tp))
+
+  return { 'fp': fp,
+           'tp': tp,
+           'fn': fn,
+           'tn': tn,
+           'fpr': (fp / float(tn + fp)), 
+           'tpr': (tp / float(fn + tp)),
+           'earlies': earlies,
+           'lates': lates }
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_dist_func(a, b, cmpr_step = 1):
