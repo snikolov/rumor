@@ -4,23 +4,8 @@ import numpy as np
 import pickle
 import rumor
 
-from collections import namedtuple
 from datetime import datetime
-
-Params = namedtuple('Params',
-                    ['pos_path',
-                     'neg_path',
-                     'threshold',
-                     'test_frac',
-                     'cmpr_window',
-                     'cmpr_step',
-                     'w_smooth',
-                     'gamma',
-                     'p_sample',
-                     'detection_step',
-                     'min_dist_step',
-                     'detection_window_hrs',
-                     'req_consec_detections'])
+from params import *
 
 # TODO: use Params namedtuple rather than full argument list
 def detect_trial(pos_path, neg_path, threshold, test_frac, cmpr_window, cmpr_step,
@@ -84,8 +69,8 @@ def detect_trials(pos_path, neg_path, threshold, test_frac, cmpr_window, cmpr_st
 
   return params, jids
 
-def store_results(results, outpath):
-  f = open(outpath, 'w')
+def store_results(results, out_path):
+  f = open(out_path, 'w')
   pickle.dump(results, f)
   f.close()
 
@@ -148,11 +133,11 @@ pos_path = ['statuses_news_rates_2m.tsv']
 neg_path = ['statuses_nonviral_rates_2m.tsv']
 threshold = [1,2] #[1,3]
 test_frac = [0.5]
-cmpr_window = [80] #[10, 80, 150]
+cmpr_window = [10,80] #[10, 80, 150]
 cmpr_step = [None]
 w_smooth = [80] #[10, 80, 150]
 gamma = [1] #[0.1, 1, 10]
-p_sample = [0.5]
+p_sample = [0.15]
 detection_step = [None]
 min_dist_step = [None]
 detection_window_hrs = [5] #[3, 5, 7]
@@ -188,4 +173,4 @@ summarize_results((params, stats))
 dt = datetime.now()
 out_path = 'data/param_explore_%d%d%d%d%d%d.pkl' % \
   (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-store_results((params, stats), outpath)
+store_results((params, stats), out_path)
