@@ -1,10 +1,11 @@
 import cloud
 import itertools
 import numpy as np
+import pickle
 import rumor
 
 from collections import namedtuple
-from cStringIO import StringIO
+from datetime import datetime
 
 Params = namedtuple('Params',
                     ['pos_path',
@@ -83,41 +84,56 @@ def detect_trials(pos_path, neg_path, threshold, test_frac, cmpr_window, cmpr_st
 
   return params, jids
 
-def write_results(paramsets, results):
-  num_paramsets = len(paramsets)
-  num_results = len(results)
-  if num_results % num_paramsets:
-    print 'Something\'s wrong here: %d resultsets from %d paramsets.' % \
-      (num_results, num_paramsets) 
-    return
-  num_trials = num_results / num_paramsets
-  results_iter = iter(results)
+def store_results(results, outpath):
+  f = open(outpath, 'w')
+  pickle.dump(results, f)
+  f.close()
 
+def fix_results_nesting(results):
+  paramsets = results[0]
+  stats = results[1]
+  num_paramsets = len(paramsets)
+  num_stats = len(stats)
+  if num_stats % num_paramsets:
+    print 'Something\'s wrong here: %d stats from %d paramsets.' % \
+      (num_stats, num_paramsets) 
+    return
+  num_trials = num_stats / num_paramsets
+  stats_iter = iter(stats)
+  statsets = []
+  for paramset in paramsets:
+    statset = []
+    for i in xrange(num_trials):
+      statset.append(stats_iter.next())
+    statsets.append(statset)
+  return (paramsets, statsets)
+
+def summarize_results(results):
+  paramsets = results[0]
+  statsets = results[1]
   for i in xrange(len(paramsets)):
     paramset = paramsets[i]
+    statset = statsets[i]
     print paramset
-    resultset = []
-    for j in xrange(num_trials):
-      resultset.append(results_iter.next())
     
-    fprs = [ result['fpr']
-             for result in resultset
-             if result['fpr']]
-    tprs = [ result['tpr']
-             for result in resultset
-             if result['tpr']]
-    mean_earlies = [ np.mean(result['earlies'])
-                     for result in resultset
-                     if len(result['earlies']) > 0 ]
-    std_earlies = [ np.std(result['earlies'])
-                    for result in resultset
-                    if len(result['earlies']) > 0 ]
-    mean_lates = [ np.mean(result['lates'])
-                   for result in resultset
-                   if len(result['lates']) > 0 ]
-    std_lates = [ np.std(result['lates'])
-                  for result in resultset
-                  if len(result['lates']) > 0 ]
+    fprs = [ stats_for_trial['fpr']
+             for stats_for_trial in statset
+             if stats_for_trial['fpr']]
+    tprs = [ stats_for_trial['tpr']
+             for stats_for_trial in statset
+             if stats_for_trial['tpr']]
+    mean_earlies = [ np.mean(stats_for_trial['earlies'])
+                     for stats_for_trial in statset
+                     if len(stats_for_trial['earlies']) > 0 ]
+    std_earlies = [ np.std(stats_for_trial['earlies'])
+                    for stats_for_trial in statset
+                    if len(stats_for_trial['earlies']) > 0 ]
+    mean_lates = [ np.mean(stats_for_trial['lates'])
+                   for stats_for_trial in statset
+                   if len(stats_for_trial['lates']) > 0 ]
+    std_lates = [ np.std(stats_for_trial['lates'])
+                  for stats_for_trial in statset
+                  if len(stats_for_trial['lates']) > 0 ]
     print 'mean fpr: ', np.mean(fprs)
     print 'std fpr: ', np.std(fprs)
     print 'mean tpr: ', np.mean(tprs)
@@ -163,4 +179,13 @@ jids = cloud.map(detect_trials,
 params_sub_jids = cloud.result(jids)
 params = [ elt[0] for elt in params_sub_jids ]
 sub_jids = [ elt[1] for elt in params_sub_jids ]
-print (params, cloud.result(sub_jids))
+stats = cloud.result(sub_jids)
+
+print (params, stats)
+params, stats = fix_results_nesting((params, stats))
+summarize_results((params, stats))
+
+dt = datetime.now()
+out_path = 'data/param_explore_%d%d%d%d%d%d.pkl' % \
+  (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+store_results((params, stats), outpath)
