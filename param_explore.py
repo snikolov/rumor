@@ -32,7 +32,7 @@ def detect_trials(pos_path, neg_path, threshold, test_frac, cmpr_window, cmpr_st
            w_smooth, gamma, p_sample, detection_step, min_dist_step,
            detection_window_hrs, req_consec_detections):
   
-  trials = 2
+  trials = 5
   pos_path_ = [pos_path] * trials
   neg_path_ = [neg_path] * trials
   threshold_ = [threshold] * trials
@@ -103,22 +103,22 @@ def summarize_results(results):
     
     fprs = [ stats_for_trial['fpr']
              for stats_for_trial in statset
-             if stats_for_trial['fpr']]
+             if stats_for_trial and stats_for_trial['fpr']]
     tprs = [ stats_for_trial['tpr']
              for stats_for_trial in statset
-             if stats_for_trial['tpr']]
+             if stats_for_trial and stats_for_trial['tpr']]
     mean_earlies = [ np.mean(stats_for_trial['earlies'])
                      for stats_for_trial in statset
-                     if len(stats_for_trial['earlies']) > 0 ]
+                     if stats_for_trial and len(stats_for_trial['earlies']) > 0 ]
     std_earlies = [ np.std(stats_for_trial['earlies'])
                     for stats_for_trial in statset
-                    if len(stats_for_trial['earlies']) > 0 ]
+                    if stats_for_trial and len(stats_for_trial['earlies']) > 0 ]
     mean_lates = [ np.mean(stats_for_trial['lates'])
                    for stats_for_trial in statset
-                   if len(stats_for_trial['lates']) > 0 ]
+                   if stats_for_trial and len(stats_for_trial['lates']) > 0 ]
     std_lates = [ np.std(stats_for_trial['lates'])
                   for stats_for_trial in statset
-                  if len(stats_for_trial['lates']) > 0 ]
+                  if stats_for_trial and len(stats_for_trial['lates']) > 0 ]
     print 'mean fpr: ', np.mean(fprs)
     print 'std fpr: ', np.std(fprs)
     print 'mean tpr: ', np.mean(tprs)
@@ -131,17 +131,17 @@ def summarize_results(results):
 # Launch.
 pos_path = ['statuses_news_rates_2m.tsv']
 neg_path = ['statuses_nonviral_rates_2m.tsv']
-threshold = [1,2] #[1,3]
+threshold = [1, 3]
 test_frac = [0.5]
-cmpr_window = [10,80] #[10, 80, 150]
+cmpr_window = [10, 80, 150]
 cmpr_step = [None]
-w_smooth = [80] #[10, 80, 150]
-gamma = [1] #[0.1, 1, 10]
-p_sample = [0.15]
+w_smooth = [10, 80, 150]
+gamma = [0.1, 1, 10]
+p_sample = [0.5]
 detection_step = [None]
 min_dist_step = [None]
-detection_window_hrs = [5] #[3, 5, 7]
-req_consec_detections = [1] #[1,3]
+detection_window_hrs = [3, 5, 7]
+req_consec_detections = [1, 3]
 
 param_product = itertools.product(pos_path,
                                   neg_path,
@@ -168,7 +168,8 @@ stats = cloud.result(sub_jids)
 
 print (params, stats)
 params, stats = fix_results_nesting((params, stats))
-summarize_results((params, stats))
+
+#summarize_results((params, stats))
 
 dt = datetime.now()
 out_path = 'data/param_explore_%d%d%d%d%d%d.pkl' % \
