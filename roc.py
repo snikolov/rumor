@@ -57,7 +57,11 @@ def roc(res_path):
       if not os.path.exists(os.path.join('fig', var_attr)):
         os.mkdir(os.path.join('fig', var_attr))
     if plot:
+      plt.subplot(121)
       plt.hold(False)
+      plt.subplot(122)
+      plt.hold(False)
+      raw_input()
 
     if pnt:
       print 'Varying', var_attr
@@ -114,22 +118,28 @@ def roc(res_path):
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT SCATTER  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-              plot_scatter = False
+              plot_scatter = True
               if plot_scatter and len(mean_fprs) > 2:
-                plt.scatter(mean_fprs, mean_tprs,
-                            s = 20 * (var_attr_count + 0.5), c = 'k')
-                plt.hold(True)
                 # Don't take the first and last if we've put a dummy 0 and 1 at
                 # each end of the means lists.
+                plt.subplot(121)
                 plt.errorbar(mean_fprs[1:-1], mean_tprs[1:-1], xerr = std_fprs,
-                             yerr = std_tprs, color = 'k', linestyle = 'None')
+                             yerr = std_tprs, color = 'k', linestyle = 'None',
+                             mfc = 'r', mec = 'r', ms = 2, marker = 'o', elinewidth = 0.5)
                 plt.title(const_attr_str + '\n' + var_attr + '=' + \
                             str(var_attr_values),
                           fontsize = 11)
                 plt.xlim([-0.1,1.1])
                 plt.ylim([-0.1,1.1])
                 plt.draw()
+                plt.hold(True)
                 #raw_input()
+                # Variable size points (showing increase in var_attr)
+                """
+                plt.scatter(mean_fprs, mean_tprs,
+                            s = 20 * (var_attr_count + 0.5), c = 'k')
+                """
+                # plt.scatter(mean_fprs, mean_tprs, s = 10, c = 'r', edgecolors = 'none')
 
               #plt.hold(True)
               # Sort points from left to right.
@@ -147,32 +157,41 @@ def roc(res_path):
                                    for (i,v) in mean_fprs_ltor_enum ]
                 num_unique = len(set([ (mean_fprs_ltor[i], mean_tprs_ltor[i]) 
                                        for i in range(len(mean_fprs_ltor)) ]))
-                if num_unique > 3:
+                if num_unique > 2:
                   # Plot bezier curves.
-                  plot_bezier = False
-                  if plot_bezier:
+                  plot_poly = True
+                  if plot_poly:
                     verts = [ (mean_fprs_ltor[i], mean_tprs_ltor[i])
-                              for i in range(len(mean_fprs_ltor)) ]              
-                    codes = [ Path.CURVE4 ] * (len(verts) - 1)
+                              for i in range(len(mean_fprs_ltor)) ]
+                    connection = Path.LINETO
+                    codes = [ connection ] * (len(verts) - 1)
+                    verts.insert(0, (1,1))
+                    verts.insert(1, (1,0))
                     codes.insert(0, Path.MOVETO)
+                    codes.insert(1, Path.LINETO)
+                    codes.insert(2, Path.LINETO)
                     path = Path(verts, codes)
+
+                    plt.subplot(122)
                     ax = plt.gca()
-                    patch = patches.PathPatch(path, facecolor='none', lw=2)
+                    patch = patches.PathPatch(path, facecolor='k', lw=5, alpha = 1)
                     # Manually clear axes. This isn't a plotting command, so hold
                     # = False has no effect.
                     if not plt.ishold():
                       plt.cla()
                     ax.add_patch(patch)
-                  plot_lines = True
+
+                  plot_lines = False
                   if plot_lines:
                     # Plot lines.
                     plt.plot(mean_fprs_ltor, mean_tprs_ltor, color = 'k',
                              linewidth = 1)
-                    plt.draw()
-                    plt.draw()
+
+                  plt.draw()
                   plt.xlim([-0.1,1.1])
                   plt.ylim([-0.1,1.1])
                   plt.hold(True)
+                  #raw_input()
               
           # Reset variables for next ROC curve.
           mean_fprs = [1,0]
