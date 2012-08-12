@@ -12,8 +12,18 @@ from operator import attrgetter
 from params import *
 
 np.seterr(all = 'raise')
-
 pp = pprint.PrettyPrinter(indent = 2)
+
+def early(res_path):
+  f = open(res_path, 'r')
+  results = pickle.load(f)
+  f.close()
+
+  paramsets = results[0]
+  statsets = results[1]
+
+  pass
+
 # Draw ROC curves
 def roc(res_path):
   f = open(res_path, 'r')
@@ -62,9 +72,12 @@ def roc(res_path):
       plt.subplot(122)
       plt.hold(False)
       raw_input()
-
     if pnt:
       print 'Varying', var_attr
+
+    delta_fprs = []
+    delta_tprs = []
+
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
     enum_sorted = sorted(enumerate(paramsets),
@@ -108,6 +121,15 @@ def roc(res_path):
           if pnt:
             print 'New experiment!'
 
+          # Record values for plotting 2d histograms of ROC curve deltas for
+          # var_attr. Don't look at first and last values, since they are the
+          # placeholder (0,0) and (1,1) points.
+          delta_fprs.extend([ mean_fprs[i] - mean_fprs[i+1]
+                              for i in range(1, len(mean_fprs) - 2) ])
+          delta_tprs.extend([ mean_tprs[i] - mean_tprs[i+1]
+                              for i in range(1, len(mean_tprs) - 2) ])
+          
+
           if plot:
             if save_fig:
               if len(mean_fprs) > 2:
@@ -118,7 +140,7 @@ def roc(res_path):
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT SCATTER  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-              plot_scatter = True
+              plot_scatter = False
               if plot_scatter and len(mean_fprs) > 2:
                 # Don't take the first and last if we've put a dummy 0 and 1 at
                 # each end of the means lists.
@@ -147,7 +169,7 @@ def roc(res_path):
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-              plot_curves = True
+              plot_curves = False
               if plot_curves:
                 mean_fprs_ltor_enum = sorted(enumerate(mean_fprs),
                                              key = lambda x:x[1])
@@ -224,6 +246,34 @@ def roc(res_path):
           std_tprs.append(stprs)
 
       var_attr_count += 1
+
+    # Plot deltas in fpr and tpr as 2d histogram.
+    if plot:
+      if delta_fprs and delta_tprs:
+        print delta_fprs, '\n'
+        print delta_tprs
+        print var_attr
+        plt.figure()
+        heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=80)
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+
+        plt.subplot(221)
+        plt.imshow(heatmap, extent=extent, cmap = 'hot')
+        plt.colorbar()
+
+        plt.subplot(222)
+        n, bins, patches = plt.hist(delta_fprs, bins = 15, normed = True,
+                                    histtype = 'stepfilled', color = 'k')
+        plt.setp(patches, 'facecolor', 'k')
+        plt.title('delta fpr')
+
+        plt.subplot(223)
+        n, bins, patches = plt.hist(delta_tprs, bins = 15, normed = True,
+                                    histtype = 'stepfilled', color = 'k')
+        plt.setp(patches, 'facecolor', 'k')
+        plt.title('delta tpr')
+
+        raw_input()
 
   """
   Parameters of interest.
