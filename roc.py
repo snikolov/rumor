@@ -90,8 +90,8 @@ def roc(res_path):
     # curve is ready to be drawn.
     var_attr_count = 0
     var_attr_values = []
-    mean_fprs = [0,1]
-    mean_tprs = [0,1]
+    mean_fprs = []
+    mean_tprs = []
     std_fprs = []
     std_tprs = []
 
@@ -124,11 +124,35 @@ def roc(res_path):
           # Record values for plotting 2d histograms of ROC curve deltas for
           # var_attr. Don't look at first and last values, since they are the
           # placeholder (0,0) and (1,1) points.
-          delta_fprs.extend([ mean_fprs[i] - mean_fprs[i+1]
-                              for i in range(1, len(mean_fprs) - 2) ])
-          delta_tprs.extend([ mean_tprs[i] - mean_tprs[i+1]
-                              for i in range(1, len(mean_tprs) - 2) ])
+          delta_fprs.extend([ mean_fprs[i] - mean_fprs[0]
+                              for i in range(1, len(mean_fprs)) ])
+          delta_tprs.extend([ mean_tprs[i] - mean_tprs[0]
+                              for i in range(1, len(mean_tprs)) ])
           
+          # Slap (0,0) and (1,1) onto mean_fprs, mean_tprs to complete the
+          # ROC curve. Also put corresponding 0 stdevs in std_fprs, std_tprs.
+          mean_fprs.extend([0,1])
+          mean_tprs.extend([0,1])
+          std_fprs.extend([0,0])
+          std_tprs.extend([0,0])
+
+          point_sizes = [ s * 8 for s in np.array(range(0, len(mean_fprs))) + 0.1 ]
+          point_sizes.extend([0.1,0.1])
+
+          # Sort from left to right.
+          mean_fprs_ltor_enum = sorted(enumerate(mean_fprs),
+                                       key = lambda x:x[1])
+          mean_fprs_ltor = [ mean_fprs[i] 
+                             for (i,v) in mean_fprs_ltor_enum ]
+          mean_tprs_ltor = [ mean_tprs[i]
+                             for (i,v) in mean_fprs_ltor_enum ]
+          std_fprs_ltor = [ std_fprs[i] 
+                            for (i,v) in mean_fprs_ltor_enum ]
+          std_tprs_ltor = [ std_tprs[i]
+                            for (i,v) in mean_fprs_ltor_enum ]
+
+          point_sizes_ltor = [ point_sizes[i]
+                               for (i,v) in mean_fprs_ltor_enum ]
 
           if plot:
             if save_fig:
@@ -145,38 +169,26 @@ def roc(res_path):
                 # Don't take the first and last if we've put a dummy 0 and 1 at
                 # each end of the means lists.
                 plt.subplot(121)
-                plt.errorbar(mean_fprs[1:-1], mean_tprs[1:-1], xerr = std_fprs,
-                             yerr = std_tprs, color = 'k', linestyle = 'None',
-                             mfc = 'r', mec = 'r', ms = 2, marker = 'o', elinewidth = 0.5)
+                plt.errorbar(mean_fprs_ltor, mean_tprs_ltor,
+                             xerr = std_fprs_ltor, yerr = std_tprs_ltor,
+                             color = 'k', linestyle = 'None',
+                             ms = 1, marker = 'o',
+                             elinewidth = 0.5)
+                plt.hold(True)
+                plt.scatter(mean_fprs_ltor, mean_tprs_ltor,
+                            s = point_sizes_ltor, c = 'k')
                 plt.title(const_attr_str + '\n' + var_attr + '=' + \
                             str(var_attr_values),
                           fontsize = 11)
                 plt.xlim([-0.1,1.1])
                 plt.ylim([-0.1,1.1])
                 plt.draw()
-                plt.hold(True)
-                #raw_input()
-                # Variable size points (showing increase in var_attr)
-                """
-                plt.scatter(mean_fprs, mean_tprs,
-                            s = 20 * (var_attr_count + 0.5), c = 'k')
-                """
-                # plt.scatter(mean_fprs, mean_tprs, s = 10, c = 'r', edgecolors = 'none')
-
-              #plt.hold(True)
-              # Sort points from left to right.
 
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               plot_curves = False
               if plot_curves:
-                mean_fprs_ltor_enum = sorted(enumerate(mean_fprs),
-                                             key = lambda x:x[1])
-                mean_fprs_ltor = [ mean_fprs[i] 
-                                   for (i,v) in mean_fprs_ltor_enum ]
-                mean_tprs_ltor = [ mean_tprs[i]
-                                   for (i,v) in mean_fprs_ltor_enum ]
                 num_unique = len(set([ (mean_fprs_ltor[i], mean_tprs_ltor[i]) 
                                        for i in range(len(mean_fprs_ltor)) ]))
                 if num_unique > 2:
@@ -194,7 +206,7 @@ def roc(res_path):
                     codes.insert(2, Path.LINETO)
                     path = Path(verts, codes)
 
-                    plt.subplot(122)
+                    plt.subplot(1,2,2)
                     ax = plt.gca()
                     patch = patches.PathPatch(path, facecolor='k', lw=5, alpha = 1)
                     # Manually clear axes. This isn't a plotting command, so hold
@@ -216,8 +228,8 @@ def roc(res_path):
                   #raw_input()
               
           # Reset variables for next ROC curve.
-          mean_fprs = [1,0]
-          mean_tprs = [1,0]
+          mean_fprs = []
+          mean_tprs = []
           std_fprs = []
           std_tprs = []
           var_attr_count = 0
@@ -240,8 +252,8 @@ def roc(res_path):
           stprs = np.std(tprs)
           
           # Record these so we plot them before moving on to the next ROC curve.
-          mean_fprs.insert(1, mfprs)
-          mean_tprs.insert(1, mtprs)
+          mean_fprs.append(mfprs)
+          mean_tprs.append(mtprs)
           std_fprs.append(sfprs)
           std_tprs.append(stprs)
 
@@ -249,7 +261,8 @@ def roc(res_path):
 
     # Plot deltas in fpr and tpr as 2d histogram.
     if plot:
-      if delta_fprs and delta_tprs:
+      plot_delta_dist = True
+      if plot_delta_dist and delta_fprs and delta_tprs:
         print delta_fprs, '\n'
         print delta_tprs
         print var_attr
@@ -257,20 +270,16 @@ def roc(res_path):
         heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=80)
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
-        plt.subplot(221)
-        plt.imshow(heatmap, extent=extent, cmap = 'hot')
-        plt.colorbar()
-
-        plt.subplot(222)
-        n, bins, patches = plt.hist(delta_fprs, bins = 15, normed = True,
+        plt.subplot(121)
+        n, bins, hpatches = plt.hist(delta_fprs, bins = 15, normed = True,
                                     histtype = 'stepfilled', color = 'k')
-        plt.setp(patches, 'facecolor', 'k')
+        plt.setp(hpatches, 'facecolor', 'k')
         plt.title('delta fpr')
 
-        plt.subplot(223)
-        n, bins, patches = plt.hist(delta_tprs, bins = 15, normed = True,
+        plt.subplot(122)
+        n, bins, hpatches = plt.hist(delta_tprs, bins = 15, normed = True,
                                     histtype = 'stepfilled', color = 'k')
-        plt.setp(patches, 'facecolor', 'k')
+        plt.setp(hpatches, 'facecolor', 'k')
         plt.title('delta tpr')
 
         raw_input()
