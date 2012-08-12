@@ -1,3 +1,4 @@
+import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -94,7 +95,9 @@ def roc(res_path):
     mean_tprs = []
     std_fprs = []
     std_tprs = []
-
+    all_fprs = []
+    all_tprs = []
+    
     for psi in xrange(len(paramsets_sorted)):
       # Take the difference between the numerical values.
       curr_params = paramsets_sorted[psi]
@@ -122,12 +125,22 @@ def roc(res_path):
             print 'New experiment!'
 
           # Record values for plotting 2d histograms of ROC curve deltas for
-          # var_attr. Don't look at first and last values, since they are the
-          # placeholder (0,0) and (1,1) points.
+          # var_attr.
+          """
           delta_fprs.extend([ mean_fprs[i] - mean_fprs[0]
                               for i in range(1, len(mean_fprs)) ])
           delta_tprs.extend([ mean_tprs[i] - mean_tprs[0]
                               for i in range(1, len(mean_tprs)) ])
+          """
+          # Alternate method for computing delta_fprs and delta_tprs. Compute
+          # across all combinations of ROC for different trials.
+          all_tprs_prod = itertools.product(*all_tprs)
+          all_fprs_prod = itertools.product(*all_fprs)
+          for fprs_combo, tprs_combo in zip(all_fprs_prod, all_tprs_prod):
+            delta_fprs.extend([ fprs_combo[i] - fprs_combo[0]
+                                for i in range(1, len(fprs_combo)) ])
+            delta_tprs.extend([ tprs_combo[i] - tprs_combo[0]
+                                for i in range(1, len(tprs_combo)) ])
           
           # Slap (0,0) and (1,1) onto mean_fprs, mean_tprs to complete the
           # ROC curve. Also put corresponding 0 stdevs in std_fprs, std_tprs.
@@ -232,6 +245,8 @@ def roc(res_path):
           mean_tprs = []
           std_fprs = []
           std_tprs = []
+          all_fprs = []
+          all_tprs = []
           var_attr_count = 0
           var_attr_values = []
     
@@ -257,6 +272,10 @@ def roc(res_path):
           std_fprs.append(sfprs)
           std_tprs.append(stprs)
 
+          # Record full list of fprs and tprs
+          all_fprs.append(fprs)
+          all_tprs.append(tprs)
+
       var_attr_count += 1
 
     # Plot deltas in fpr and tpr as 2d histogram.
@@ -271,13 +290,13 @@ def roc(res_path):
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
         plt.subplot(121)
-        n, bins, hpatches = plt.hist(delta_fprs, bins = 15, normed = True,
+        n, bins, hpatches = plt.hist(delta_fprs, bins = 35, normed = True,
                                     histtype = 'stepfilled', color = 'k')
         plt.setp(hpatches, 'facecolor', 'k')
         plt.title('delta fpr')
 
         plt.subplot(122)
-        n, bins, hpatches = plt.hist(delta_tprs, bins = 15, normed = True,
+        n, bins, hpatches = plt.hist(delta_tprs, bins = 35, normed = True,
                                     histtype = 'stepfilled', color = 'k')
         plt.setp(hpatches, 'facecolor', 'k')
         plt.title('delta tpr')
