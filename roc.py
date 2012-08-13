@@ -63,6 +63,12 @@ def roc(res_paths):
   # to be specified.
   all_attrs = ['gamma', 'cmpr_window', 'threshold', 'w_smooth',
                'detection_window_hrs', 'req_consec_detections']
+  const_attrs_allowed_values = { 'gamma': [0.1, 1, 10],
+                                 'cmpr_window': [10, 80, 115, 150],
+                                 'threshold': [1,3],
+                                 'w_smooth': [10, 80, 115, 150],
+                                 'detection_window_hrs': [3, 5, 7, 9],
+                                 'req_consec_detections': [1, 3, 5] }
 
   # Assuming parameter combinations are sorted, go through them sequentially and
   # note the index of the parameter that changes. When that index changes, we
@@ -83,6 +89,9 @@ def roc(res_paths):
 
     delta_fprs = []
     delta_tprs = []
+
+    # Mapping from paramset to percentage of tpr and fpr deltas above 0.
+    delta_rank = {}
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
@@ -136,26 +145,53 @@ def roc(res_paths):
 
           # Record values for plotting 2d histograms of ROC curve deltas for
           # var_attr.
-
-          delta_fprs.extend([ (mean_fprs[i] - mean_fprs[0]) / \
-                                (var_attr_values[i] - var_attr_values[0])
+          """
+          delta_fprs.extend([ (mean_fprs[i] - mean_fprs[i-1]) / \
+                                (var_attr_values[i] - var_attr_values[i-1])
                               for i in range(1, len(mean_fprs)) ])
-          delta_tprs.extend([ (mean_tprs[i] - mean_tprs[0]) / \
-                                (var_attr_values[i] - var_attr_values[0])
+          delta_tprs.extend([ (mean_tprs[i] - mean_tprs[i-1]) / \
+                                (var_attr_values[i] - var_attr_values[i-1])
                               for i in range(1, len(mean_tprs)) ])
-
+          """
           # Alternate method for computing delta_fprs and delta_tprs. Compute
           # across all combinations of ROC for different trials.
-          """
+
           # zip on so much data is expensive!
-          all_tprs_prod = itertools.product(*all_tprs)
-          all_fprs_prod = itertools.product(*all_fprs)
-          for fprs_combo, tprs_combo in zip(all_fprs_prod, all_tprs_prod):
-            delta_fprs.extend([ fprs_combo[i] - fprs_combo[0]
-                                for i in range(1, len(fprs_combo)) ])
-            delta_tprs.extend([ tprs_combo[i] - tprs_combo[0]
-                                for i in range(1, len(tprs_combo)) ])
-          """
+          all_tprs_prod = list(itertools.product(*all_tprs))
+          all_fprs_prod = list(itertools.product(*all_fprs))
+          # Separate storage of deltas for current params only.
+          delta_fprs_curr_params = []
+          delta_tprs_curr_params = []
+
+          for combo_i in xrange(len(all_fprs_prod)):
+            fprs_combo = all_fprs_prod[combo_i]
+            tprs_combo = all_tprs_prod[combo_i]
+            new_delta_fprs = [ (fprs_combo[i] - fprs_combo[i-1]) / \
+                                 (var_attr_values[i] - var_attr_values[i-1])
+                               for i in range(1, len(fprs_combo)) ]
+            new_delta_tprs = [ (tprs_combo[i] - tprs_combo[i-1]) / \
+                                 (var_attr_values[i] - var_attr_values[i-1])
+                               for i in range(1, len(tprs_combo)) ]
+            delta_fprs.extend(new_delta_fprs)
+            delta_tprs.extend(new_delta_tprs)
+            delta_fprs_curr_params.extend(new_delta_fprs)
+            delta_tprs_curr_params.extend(new_delta_tprs)
+
+          # Record the fraction of deltas greater than zero for the purpose of
+          # ranking which parameters cause the most positive and negative
+          # deltas.
+          f_num_geq_zero = len([ ndfpr for ndfpr in delta_fprs_curr_params
+                                 if ndfpr >= 0 ])
+          t_num_geq_zero = len([ ndtpr for ndtpr in delta_tprs_curr_params
+                                 if ndtpr >= 0 ])
+          if len(delta_fprs_curr_params) > 0 and \
+                len(delta_tprs_curr_params) > 0:
+            f_frac_geq_zero = \
+              float(f_num_geq_zero) / len(delta_fprs_curr_params)
+            t_frac_geq_zero = \
+              float(t_num_geq_zero) / len(delta_tprs_curr_params)
+            delta_rank[curr_params] = (f_frac_geq_zero, t_frac_geq_zero)
+
           # Slap (0,0) and (1,1) onto mean_fprs, mean_tprs to complete the
           # ROC curve. Also put corresponding 0 stdevs in std_fprs, std_tprs.
           mean_fprs.extend([0,1])
@@ -209,6 +245,8 @@ def roc(res_paths):
                           fontsize = 11)
                 plt.xlim([-0.1,1.1])
                 plt.ylim([-0.1,1.1])
+                plt.hold(False)
+                raw_input()
 
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
@@ -278,40 +316,57 @@ def roc(res_paths):
           mtprs = np.mean(tprs)
           sfprs = np.std(fprs)
           stprs = np.std(tprs)
-          
-          # Record these so we plot them before moving on to the next ROC curve.
-          mean_fprs.append(mfprs)
-          mean_tprs.append(mtprs)
-          std_fprs.append(sfprs)
-          std_tprs.append(stprs)
 
-          # Record full list of fprs and tprs
-          all_fprs.append(fprs)
-          all_tprs.append(tprs)
+          # Record these so we plot them before moving on to the next ROC curve.
+          curr_params_dict = curr_params._asdict()
+          if all([ curr_params_dict[const_attr]
+                   in const_attrs_allowed_values[const_attr]
+                   for const_attr in const_attrs ]):
+            mean_fprs.append(mfprs)
+            mean_tprs.append(mtprs)
+            std_fprs.append(sfprs)
+            std_tprs.append(stprs)
+
+            # Record full list of fprs and tprs
+            all_fprs.append(fprs)
+            all_tprs.append(tprs)
 
       var_attr_count += 1
+
+    # For current var_attr, compute rank of all other parameters by how much
+    # positive and negative delta fprs and delta tprs they cause.
+    delta_rank = [ [str(drk), delta_rank[drk]] for drk in delta_rank ]
+    delta_rank_f = sorted(delta_rank, key = lambda x: x[1][0])
+    delta_rank_t = sorted(delta_rank, key = lambda x: x[1][1])
+    print '\n\ndelta_rank_f'
+    pp.pprint(delta_rank_f)
+    print '\n\ndelta_rank_t'
+    pp.pprint(delta_rank_t)
 
     # Plot deltas in fpr and tpr as 2d histogram.
     if plot:
       plot_delta_dist = True
       if plot_delta_dist and delta_fprs and delta_tprs:
-        print delta_fprs, '\n'
-        print delta_tprs
         print var_attr
+
         plt.figure()
         heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=80)
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
         plt.subplot(121)
-        n, bins, hpatches = plt.hist(delta_fprs, bins = 35, normed = True,
-                                    histtype = 'stepfilled', color = 'k')
-        plt.setp(hpatches, 'facecolor', 'k')
+        n, bins, hpatches = plt.hist(delta_fprs, bins = 30, normed = False,
+                                     histtype = 'stepfilled', color = 'k',
+                                     align = 'mid')
+        plt.setp(hpatches, 'facecolor', 'm')
+        plt.axvline(0, linestyle = '--', color = 'k')
         plt.title('delta fpr')
 
         plt.subplot(122)
-        n, bins, hpatches = plt.hist(delta_tprs, bins = 35, normed = True,
-                                    histtype = 'stepfilled', color = 'k')
-        plt.setp(hpatches, 'facecolor', 'k')
+        n, bins, hpatches = plt.hist(delta_tprs, bins = 30, normed = False,
+                                     histtype = 'stepfilled', color = 'k',
+                                     align = 'mid')
+        plt.setp(hpatches, 'facecolor', 'm')
+        plt.axvline(0, linestyle = '--', color = 'k')
         plt.title('delta tpr')
 
   """
