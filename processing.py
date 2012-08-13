@@ -535,9 +535,9 @@ def ts_split_training_test(ts_info, test_frac):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
-                    cmpr_window = 20, cmpr_step = None, w_smooth = 60, gamma = 1,
+                    cmpr_window = 80, cmpr_step = None, w_smooth = 80, gamma = 1,
                     p_sample = 0.5, detection_step = None, min_dist_step = None,
-                    detection_window_hrs = 2, req_consec_detections = 1,
+                    detection_window_hrs = 5, req_consec_detections = 1,
                     normalize = True):
 
   #np.random.seed(31953)

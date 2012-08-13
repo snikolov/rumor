@@ -157,6 +157,48 @@ param_product = itertools.product(pos_path,
                                   detection_window_hrs,
                                   req_consec_detections)
 
+"""
+param_product_old = itertools.product(pos_path,
+                                      neg_path,
+                                      threshold,
+                                      test_frac,
+                                      cmpr_window,
+                                      cmpr_step,
+                                      w_smooth,
+                                      gamma,
+                                      p_sample,
+                                      detection_step,
+                                      min_dist_step,
+                                      detection_window_hrs,
+                                      req_consec_detections)
+
+threshold = [0.65, 1, 3]
+cmpr_window = [10, 80, 115, 150]
+w_smooth = [10, 80, 115, 150]
+gamma = [0.1, 1, 10]
+detection_window_hrs = [3, 5, 7, 9]
+req_consec_detections = [1, 3, 5]
+
+param_product_new = itertools.product(pos_path,
+                                      neg_path,
+                                      threshold,
+                                      test_frac,
+                                      cmpr_window,
+                                      cmpr_step,
+                                      w_smooth,
+                                      gamma,
+                                      p_sample,
+                                      detection_step,
+                                      min_dist_step,
+                                      detection_window_hrs,
+                                      req_consec_detections)
+
+param_product_old = set(param_product_old)
+param_product_new = set(param_product_new)
+
+param_product = param_product_new.difference(param_product_old)
+"""
+
 jids = cloud.map(detect_trials,
                  *zip(*param_product),
                  _type = 'f2')
@@ -166,12 +208,15 @@ params = [ elt[0] for elt in params_sub_jids ]
 sub_jids = [ elt[1] for elt in params_sub_jids ]
 stats = cloud.result(sub_jids)
 
-print (params, stats)
-params, stats = fix_results_nesting((params, stats))
-
-#summarize_results((params, stats))
-
 dt = datetime.now()
-out_path = 'data/param_explore_%d%d%d%d%d%d.pkl' % \
+
+# Write out as plain text just in case.
+out_path_txt = 'data/param_explore_%d%d%d%d%d%d.txt' % \
   (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-store_results((params, stats), out_path)
+open(out_path_txt, 'w').write(str((params, stats)))
+
+params, stats = fix_results_nesting((params, stats))
+out_path_pkl = 'data/param_explore_%d%d%d%d%d%d.pkl' % \
+  (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+store_results((params, stats), out_path_pkl)
+

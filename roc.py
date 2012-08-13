@@ -26,13 +26,17 @@ def early(res_path):
   pass
 
 # Draw ROC curves
-def roc(res_path):
-  f = open(res_path, 'r')
-  results = pickle.load(f)
-  f.close()
-
-  paramsets = results[0]
-  statsets = results[1]
+def roc(res_paths):
+  paramsets = []
+  statsets = []
+  for res_path in res_paths:
+    f = open(res_path, 'r')
+    results = pickle.load(f)
+    f.close()
+    for paramset in results[0]:
+      paramsets.append(paramset)
+    for statset in results[1]:
+      statsets.append(statset)
 
   """
   # Sort just to make sure (TODO: untested) TODO: This will come in handy when
@@ -72,6 +76,7 @@ def roc(res_path):
       plt.hold(False)
       plt.subplot(122)
       plt.hold(False)
+      print 'Press any key'
       raw_input()
     if pnt:
       print 'Varying', var_attr
@@ -81,7 +86,11 @@ def roc(res_path):
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
+    # Sort by variable parameter.
     enum_sorted = sorted(enumerate(paramsets),
+      key = lambda x: x[1]._asdict()[var_attr])
+    # Sort by constant parameters.
+    enum_sorted = sorted(enum_sorted,
       key = lambda x: [ x[1]._asdict()[attr] for attr in const_attrs ])
     paramsets_sorted = [ elt[1] for elt in enum_sorted ]
     indices_sorted = [ elt[0] for elt in enum_sorted ]
@@ -117,7 +126,8 @@ def roc(res_path):
                          for i in range(2,len(prev_params))
                          if type(curr_params[i]) is type(0) or \
                            type(curr_params[i]) is type(0.0) ]
-        # print 'delta', delta_params
+        if pnt:
+          print 'delta', delta_params
         mod_indices = np.where(np.array(delta_params) != 0)
         if len(mod_indices[0]) > 1:
           # We're starting a new experiment.    
@@ -126,14 +136,18 @@ def roc(res_path):
 
           # Record values for plotting 2d histograms of ROC curve deltas for
           # var_attr.
-          """
-          delta_fprs.extend([ mean_fprs[i] - mean_fprs[0]
+
+          delta_fprs.extend([ (mean_fprs[i] - mean_fprs[0]) / \
+                                (var_attr_values[i] - var_attr_values[0])
                               for i in range(1, len(mean_fprs)) ])
-          delta_tprs.extend([ mean_tprs[i] - mean_tprs[0]
+          delta_tprs.extend([ (mean_tprs[i] - mean_tprs[0]) / \
+                                (var_attr_values[i] - var_attr_values[0])
                               for i in range(1, len(mean_tprs)) ])
-          """
+
           # Alternate method for computing delta_fprs and delta_tprs. Compute
           # across all combinations of ROC for different trials.
+          """
+          # zip on so much data is expensive!
           all_tprs_prod = itertools.product(*all_tprs)
           all_fprs_prod = itertools.product(*all_fprs)
           for fprs_combo, tprs_combo in zip(all_fprs_prod, all_tprs_prod):
@@ -141,7 +155,7 @@ def roc(res_path):
                                 for i in range(1, len(fprs_combo)) ])
             delta_tprs.extend([ tprs_combo[i] - tprs_combo[0]
                                 for i in range(1, len(tprs_combo)) ])
-          
+          """
           # Slap (0,0) and (1,1) onto mean_fprs, mean_tprs to complete the
           # ROC curve. Also put corresponding 0 stdevs in std_fprs, std_tprs.
           mean_fprs.extend([0,1])
@@ -195,7 +209,6 @@ def roc(res_path):
                           fontsize = 11)
                 plt.xlim([-0.1,1.1])
                 plt.ylim([-0.1,1.1])
-                plt.draw()
 
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
@@ -234,7 +247,6 @@ def roc(res_path):
                     plt.plot(mean_fprs_ltor, mean_tprs_ltor, color = 'k',
                              linewidth = 1)
 
-                  plt.draw()
                   plt.xlim([-0.1,1.1])
                   plt.ylim([-0.1,1.1])
                   plt.hold(True)
@@ -251,6 +263,7 @@ def roc(res_path):
           var_attr_values = []
     
       var_attr_values.append(curr_params._asdict()[var_attr])
+
       if plot:
         fprs = [ stats['fpr']
                  for stats in statsets_sorted[psi]
@@ -300,8 +313,6 @@ def roc(res_path):
                                     histtype = 'stepfilled', color = 'k')
         plt.setp(hpatches, 'facecolor', 'k')
         plt.title('delta tpr')
-
-        raw_input()
 
   """
   Parameters of interest.
