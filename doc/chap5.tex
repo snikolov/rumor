@@ -1,1 +1,74 @@
-\chapter{Discussion}
+\chapter{Results and Discussion}
+\label{ch:results}
+
+In this chapter, I present the results of the trend detection experiment
+described in chapter \ref{ch:data}. I show the quality of the trend detection
+algorithm using ROC curves and distributions of detection time relative to the
+true trend onset. I analyze the effect of the algorithm parameters on the
+tradeoff between false positive rate, true positive rate, and relative detection
+time. Finally, I propose parameter regimes appropriate for three situations: 1)
+the cost of a false positive outweighs the cost of a false negative, 2) the cost
+of a false negative outweighs the cost of a false positive, and 3) the costs of
+a false positive and a false negative are comparable.
+
+\section{ROC Curve Envelopes}
+
+Figure \ref{fig:roc_env} shows the false positive rates ($FPR$) and true
+positive rates ($TPR$) that result from varying each detection parameter,
+aggregated over all combinations of the remaining parameters. The left side of
+each plot shows a scatter plot of false positive and true positive rates, while
+the right side shows the upper-left-most envelope of the set of all ROC curves.
+
+\section{Examples} %TODO: Call this something better
+
+True positives. Slow rising vs fast rising.
+
+True negatives.
+
+False positives. Stuff with significant volume or spikes.
+
+False negatives. Stuff with too little volume or not enough spikes.
+
+\section{Effect of Parameters}
+
+Do we move up or down the curve?
+
+We show how varying a given parameter $p$ trades off $FPR$ for $TPR$ by
+computing the discrete derivative of $FPR$ and $TPR$ with respect to $p$. For
+each ROC curve, corresponding to the variable parameter $p$ and some fixed
+combination of remaining parameters, we compute
+\begin{gather}
+\Delta_{p,i}^{FPR} = \frac{FPR(p_{i}) - FPR(p_{i-1})}{p_i - p_{i-1}}\\
+\Delta_{p,i}^{TPR} = \frac{TPR(p_{i}) - TPR(p_{i-1})}{p_i - p_{i-1}}
+\end{gather}
+for each ROC curve associated with $p$ and for $i$ ranging from the second to the last value
+of $p$ in increasing order. If each point on the ROC curve is produced by
+multiple trials, we compute the above for all possible combinations of ROC
+curves. Finally, we compute the above across all combinations of fixed
+parameters.
+
+The result is a distribution of discrete derivatives of $FPR$ and $TPR$ with
+respect to a variable parameter of interest $p$ which highlights the effect of
+$p$ on tradeoffs between $FPR$ and $TPR$. We can refer this effect as moving
+``up'' the ROC curve, or ``down'' the ROC curve. If most of the mass of
+$\Delta_{p}^{FPR}$ and $\Delta_{p}^{TPR}$ is at values greater than 0, then an
+increase in $p$ causes a decrease in $FPR$ at the expense of lower $TPR$, moving
+down the curve. If, on the other hand, most of the mass is at values less than
+zero, an increase in $p$ causes an increase in $TPR$ at the expensive of higher
+$FPR$, moving up the curve.
+
+Figure \ref{deltas} shows this effect for each parameter.
+
+% TODO: FIgure
+
+% TODO: consistent effect, vs contingent effect
+It is clear that varying some parameters has the same effect regardless of the
+remaining parameters, at least within the range of values explored. 
+
+Increasing \vt{Gamma} always moves us up the curve.
+Increasing \vt{Threshold} always moves us down the curve.
+Increasing \vt{ReqConsecDetections} always moves us down the curve.
+
+% TODO: Discuss effect on relative detection time
+
+\section{Recommendations}

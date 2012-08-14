@@ -1,1 +1,140 @@
-\chapter{Results}
+\chapter{Application: Identifying Trending Topics on Twitter}
+\label{ch:data}
+
+In this chapter, I consider the application of the method and algorithm proposed
+in chapters \ref{ch:method} and \ref{ch:alg} toward detection of trending topics
+on Twitter. I discuss the Twitter service, the collectiion and pre-processing of
+data, and the experimental setup for the detection task.
+
+\section{Problem Statement}
+\subsection{Overview of Twitter}
+Twitter is a real-time messaging service and information network. Users of
+Twitter can post short (up to 140 characters) messages called {\em tweets},
+which are then broadcast to the users' {\em followers}. Users can also engage in
+conversation with one another. By default, tweets are public, which means that
+anyone can see them and potentially join a conversation on a variety of topics
+being discussed. Inevitably, some topics gain relatively sudden popularity on
+Twitter. For example, a popular topic might reflect an external event such as a
+breaking news story or an internally generated meme. Twitter surfaces such
+topics in the service as a list of Trending Topics.
+
+\subsection{Problem Statement} %TODO: This is the same as its parent heading
+I apply the method and algorithm described in chapters \ref{ch:method} and
+\ref{ch:alg} to the problem of detecting trending topics. 
+%TODO elaborate. talk about the importance of early detection
+
+
+\section{Data}
+\subsection{Data Collection}
+The online time series classification task requires a set of labeled examples of
+trends (positive examples) and non-trends (negative examples). Each example
+consists of a topic and a signal representing a measurement about the topic over
+time. If the example is a positive one, it also contains the time of the {\em
+  true onset} of the trend.
+
+The data collection process can be summarized as follows. First, I collected 500
+examples of trending topics and 500 examples of non-trending topics between June
+1, 2012 and June 30, 2012 (hereafter refered to as the {\em time window}). Then,
+I labeled a sample of tweets with the topic or topics contained
+therein. Finally, I constructed a signal for each topic based on the tweet
+activity corresponding to that topic.
+
+I obtained all data directly from Twitter as an employee of Twitter via the MIT
+VI-A thesis program. However, the type as well as the amount of data I have used
+is all publicly available via the Twitter API.
+
+\subsubsection{Topics}
+I collected a list of all trending topics on Twitter from June 1, 2012 to June
+30, 2012, as well as the times that they were trending and their rank in the
+trending topics list on Twitter. Of those, I filtered out topics whose rank was
+never better than or equal to 3 between June 1, 2012 and June 30, 2012. In
+addition, I filtered out topics that did not trend for long enough (time of
+first appearance to time of last appearance is less than 30 minutes) as well as
+topics that reappeared multiple times in the time window (time of first
+appearance to time of last appearance is greater than 24 hours). The former
+eliminates many trends that are spurious and trend for a very short time. The
+latter eliminates topics that correspond to multiple events, such as the name of
+a football player, whose name might trend every time there is an important game.
+
+I collected non-trending topics in two steps. First, I sampled a list of n-grams
+(phrases consisting of $n$ ``words'') in the time window for $n$ up to 5. I
+filtered out n-grams that contain a trending topic, using the original,
+unfiltered list of all trending topics in the time window. For example, if
+``Whitney Houston'' is a trending topic in the time window, then ``Whitney''
+would not be accepted as a non-trending topic. I also removed n-grams shorter
+than three characters, as most of these were not meaningful topics. Finally, I
+sampled 500 n-grams uniformly from the filtered list of n-grams.
+
+\subsubsection{Tweets}
+% TODO: Is 10% accessible publicly? For a price?
+I sampled 10\% of all public tweets from June 1, 2012 to June 30, 2012
+inclusive. I labeled each tweet with the topic or topics contained therein using
+a simple regular expression match between the tweet text and the topic text. 
+
+%TODO: Give the parameters names!!!
+
+\subsection{From Tweets to Signals}
+I discuss the process of converting the timestamped tweets for a given topic
+into a reference signal. Each of the steps below is followed in order for each
+topic.
+
+\subsubsection{Rates}
+First, we determine the rate of tweets about a topic over time by binning the
+tweets into time bins of a certain length. I used time bins of length two
+minutes. 
+
+\subsubsection{Normalization to Remove Baseline}
+A first glance at the data (TODO: Show this!) reveals that many non-trending
+topics have a relatively high rate and volume of tweets, and many trending
+topics have a relatively low rate and volume of tweets.
+
+On important difference is that many non-trending topics have a high baseline
+rate while most trending topics are preceded by little, if any, activity before
+they start gaining popularity. To remove whatever baseline rate may be present,
+we divide the rate by the mean rate over the entire window. We then take the
+quotient to a power $\beta$, which controls how much we reward and penalize
+rates above and below the mean rate.
+
+\subsubsection{Derivative to Reward Spikes}
+%TODO: This is weak. Do we want to be rewarding big jumps or sudden jumps? Not
+%clear which one you're doing here, and not clear which is more justifiable.
+Another difference between the rates of tweets for trending topics and that of
+non-trending topics is the number and magnitude of spikes. The tweet rates for
+trending topics typically contains larger and more sudden spikes than that of
+non-trending topics. We reward such spikes by emphasizing them, while
+de-emphasizing smaller spikes. If the signal so-far in the transformation
+process is $r$, we transform it to \[ s(t) = |\dot{r}(t)|^{\alpha},\] or in the
+discrete case, \[ s[n] = |r[n] - r[n-1]|^{\alpha},\] where $\alpha > 1$.
+
+\subsubsection{Slicing}
+The signal resulting from the steps so far is as long as the entire time window
+from which all tweets were sampled. Such a long signal is not particularly
+useful as a reference signal. Recall from chapter \ref{ch:alg} that to see how
+much the recent trajectory of the observed signal resembles part of a reference
+signal, we have to traverse the full length of the reference signal in order to
+find the piece that most closely resembles the recent observed trajectory. If
+the reference signal for a trending topic spans too long of a time window, only
+a small portion of it will represent activity surrounding the onset of the
+trend. In addition, it is inefficient to compare the recently observed
+trajectory to a reference signal that is needleslly long. Hence, it is necessary
+to select a small slice of signal from the much longer rate signal. In the case
+of trending topics, we select a slice that terminates at the first onset of
+trend. That way, we capture the pattern of activity leading up to the trend
+onset, which is crucial for recognizing similar pre-onset activity in the
+observed signal. For non-trending topics, we assume that the rate signal is
+largely stationary and select slices with random start and end times. For
+simplicity, all slices are a fixed size.
+
+\subsubsection{Smoothing}
+Tweet rates, and the aforementioned transformations thereof, tend to be noisy,
+especially for small time bins. To mitigate this, we convolve the signal
+resulting from the previous step with a smoothing window.
+
+\subsubsection{Branching Processes and Exponential Variation}
+%TODO: Come up with something quickly and ask Devavrat for help.
+In the final step, we take the logarithm of each signal. It is well known that
+branching processes exhibit exponential variation.\cite{Szabo}
+
+\section{Experimental Setup}
+
+We have a rate of tweets over time

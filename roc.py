@@ -65,7 +65,7 @@ def roc(res_paths):
                'detection_window_hrs', 'req_consec_detections']
   const_attrs_allowed_values = { 'gamma': [0.1, 1, 10],
                                  'cmpr_window': [10, 80, 115, 150],
-                                 'threshold': [1,3],
+                                 'threshold': [0.65, 1,3],
                                  'w_smooth': [10, 80, 115, 150],
                                  'detection_window_hrs': [3, 5, 7, 9],
                                  'req_consec_detections': [1, 3, 5] }
@@ -335,7 +335,7 @@ def roc(res_paths):
 
     # For current var_attr, compute rank of all other parameters by how much
     # positive and negative delta fprs and delta tprs they cause.
-    delta_rank = [ [str(drk), delta_rank[drk]] for drk in delta_rank ]
+    delta_rank = [ [drk, delta_rank[drk]] for drk in delta_rank ]
     delta_rank_f = sorted(delta_rank, key = lambda x: x[1][0])
     delta_rank_t = sorted(delta_rank, key = lambda x: x[1][1])
     print '\n\ndelta_rank_f'
@@ -343,11 +343,31 @@ def roc(res_paths):
     print '\n\ndelta_rank_t'
     pp.pprint(delta_rank_t)
 
+    print var_attr
+    for const_attr in const_attrs:
+      const_attr_values_f = [ dr[0]._asdict()[const_attr]
+                              for dr in delta_rank_f ]
+      rank_scores_f = [dr[1][0] for dr in delta_rank_f]
+      const_attr_values_t = [ dr[0]._asdict()[const_attr]
+                              for dr in delta_rank_t ]
+      rank_scores_t = [dr[1][1] for dr in delta_rank_t]
+
+      plt.subplot(121)
+      plt.scatter(const_attr_values_f, rank_scores_f)
+      plt.title('fpr ' + const_attr)
+      plt.ylim([0,1])
+      
+      plt.subplot(122)
+      plt.scatter(const_attr_values_t, rank_scores_t)
+      plt.title('t ' + const_attr)
+      plt.ylim([0,1])
+
+      raw_input()
+
     # Plot deltas in fpr and tpr as 2d histogram.
     if plot:
       plot_delta_dist = True
       if plot_delta_dist and delta_fprs and delta_tprs:
-        print var_attr
 
         plt.figure()
         heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=80)
