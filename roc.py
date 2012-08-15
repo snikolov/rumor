@@ -65,7 +65,7 @@ def roc(res_paths):
                'detection_window_hrs', 'req_consec_detections']
   const_attrs_allowed_values = { 'gamma': [0.1, 1, 10],
                                  'cmpr_window': [10, 80, 115, 150],
-                                 'threshold': [0.65, 1,3],
+                                 'threshold': [0.65, 1, 3],
                                  'w_smooth': [10, 80, 115, 150],
                                  'detection_window_hrs': [3, 5, 7, 9],
                                  'req_consec_detections': [1, 3, 5] }
@@ -393,6 +393,43 @@ def roc(res_paths):
       var_attr_count += 1
 
     print var_attr    
+    # Plot a heatmap of positions in plane for each var_attr
+    plot_roc_plane_scatter = True
+    if plot_roc_plane_scatter:
+      plt.figure(figsize = (2.5,2.5))
+      for const_attr in const_attrs:
+        const_attr_values = const_attrs_allowed_values[const_attr]
+        for const_attr_value in const_attr_values:
+          print const_attr, '=', const_attr_value
+          udr_fprs = []
+          udr_tprs = []
+          fprs_for_const_attr_value = []
+          fprs_for_const_attr_value = []
+          entries_for_const_attr_value = \
+              [ updown_rank[udr] for udr in updown_rank 
+                if udr._asdict()[const_attr] == const_attr_value ]
+          if not entries_for_const_attr_value:
+            # It is possible that for the given const_attr_value, none of deltas
+            # made the criterion for inclusion. For example, they might have
+            # been skipped because they corresponded to points on the ROC curve
+            # "stuck" near (0,0) or (1,1), for which deltas are meaningless.
+            print 'No matches for ', const_attr, '=', const_attr_value
+            continue
+          for udr in entries_for_const_attr_value:
+            udr_fprs.extend(np.array(udr[4]).flatten())
+            udr_tprs.extend(np.array(udr[5]).flatten())
+          """
+          heatmap, xedges, yedges = np.histogram2d(udr_fprs,
+                                                   udr_tprs, bins=30)
+          extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
+          plt.imshow(np.flipud(heatmap), extent = extent)
+          """
+          plt.scatter(udr_fprs, udr_tprs)
+          plt.xlim([-.1,1.1])
+          plt.ylim([-.1,1.1])
+          plt.grid(True)
+          raw_input()
+
     # For current var_attr, compute rank of all other parameters by how far "up"
     # or "down" the ROC curve lies in the continuum of FPR/TPR tradeoffs.
     updown_rank = [ [udr, updown_rank[udr]] for udr in updown_rank ]
@@ -401,7 +438,7 @@ def roc(res_paths):
     updown_rank_f_max = sorted(updown_rank, key = lambda x: x[1][2], reverse = True)
     updown_rank_t_max = sorted(updown_rank, key = lambda x: x[1][3], reverse = True)
     
-    plot_roc_updown_ranked = True
+    plot_roc_updown_ranked = False
     if plot_roc_updown_ranked:
       for updown_rank_sorted in [ updown_rank_f_min, updown_rank_f_max ]:
         print '\n\n'
@@ -518,8 +555,6 @@ def roc(res_paths):
           print const_attr, '=', const_attr_value
           dr_delta_fprs = []
           dr_delta_tprs = []
-          delta_fprs_for_const_attr_value = []
-          delta_fprs_for_const_attr_value = []
           entries_for_const_attr_value = \
               [ drf[1] for drf in delta_rank_f 
                 if drf[0]._asdict()[const_attr] == const_attr_value ]
