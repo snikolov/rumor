@@ -8,10 +8,12 @@ import string
 import matplotlib.patches as patches
 
 from math import exp
+from matplotlib import rc
 from matplotlib.path import Path
 from operator import attrgetter
 from params import *
 
+rc('text', usetex = True)
 np.seterr(all = 'raise')
 pp = pprint.PrettyPrinter(indent = 2)
 
@@ -52,7 +54,7 @@ def roc(res_paths):
   if plot:
     plt.close('all')
     plt.ion()
-    fig = plt.figure()
+    fig = plt.figure(figsize = (10,4.5))
     plt.show()
 
   if save_fig:
@@ -80,6 +82,7 @@ def roc(res_paths):
     if plot:
       print 'Press any key'
       raw_input()
+      plt.figure(figsize = (10,4.5))
       plt.subplot(121)
       plt.hold(False)
       plt.subplot(122)
@@ -296,15 +299,28 @@ def roc(res_paths):
                              ms = 1, marker = 'o',
                              elinewidth = 0.5)
                 plt.hold(True)
+                # For increasing point sizes.
+                """
                 plt.scatter(mean_fprs_ltor, mean_tprs_ltor,
-                            s = point_sizes_ltor, c = 'k')
+                            s = point_sizes_ltor, c = 'b')
+                """
+                plt.scatter(mean_fprs_ltor, mean_tprs_ltor,
+                            s = 15, c = 'k')
+                plt.suptitle('Varying ' + var_attr)
+                plt.title('Scatterplot')
+                plt.xlabel('FPR')
+                plt.ylabel('TPR')
+                plt.grid(True)
+                """
                 plt.title(const_attr_str + '\n' + var_attr + '=' + \
                             str(var_attr_values),
                           fontsize = 11)
+                """
                 plt.xlim([-0.1,1.1])
                 plt.ylim([-0.1,1.1])
-                plt.hold(False)
-                raw_input()
+                # Enable for sequential viewing
+                #plt.hold(False)
+                #raw_input()
 
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
@@ -346,6 +362,11 @@ def roc(res_paths):
                   plt.xlim([-0.1,1.1])
                   plt.ylim([-0.1,1.1])
                   plt.hold(True)
+                  plt.title('Best-case envelope')
+                  plt.xlabel('FPR')
+                  plt.ylabel('TPR')
+                  plt.grid(True)
+                  # Enable for sequential viewing
                   #raw_input()
               
           # Reset variables for next ROC curve.
@@ -392,9 +413,9 @@ def roc(res_paths):
 
       var_attr_count += 1
 
-    print var_attr    
+    print var_attr  
     # Plot a heatmap of positions in plane for each var_attr
-    plot_roc_plane_scatter = True
+    plot_roc_plane_scatter = False
     if plot_roc_plane_scatter:
       plt.figure(figsize = (2.5,2.5))
       for const_attr in const_attrs:
@@ -425,9 +446,13 @@ def roc(res_paths):
           plt.imshow(np.flipud(heatmap), extent = extent)
           """
           plt.scatter(udr_fprs, udr_tprs)
+          plt.hold(True)
+          plt.axvline(np.mean(udr_fprs), lw = 1, ls = '--')
+          plt.axhline(np.mean(udr_tprs), lw = 1, ls = '--')
           plt.xlim([-.1,1.1])
           plt.ylim([-.1,1.1])
           plt.grid(True)
+          plt.hold(False)
           raw_input()
 
     # For current var_attr, compute rank of all other parameters by how far "up"
@@ -597,9 +622,11 @@ def roc(res_paths):
           raw_input()
 
     # Plot deltas in fpr and tpr as 2d histogram.
-    plot_delta_dist = False
+    plot_delta_dist = True
     if plot_delta_dist and delta_fprs and delta_tprs:
-      plt.figure()
+      plt.figure(figsize = (6,6))
+      plt.suptitle('$p = $' + var_attr + '$)$')
+
       plt.subplot(223)
       heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=30)
       extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
@@ -614,7 +641,7 @@ def roc(res_paths):
                                    align = 'mid', orientation = 'horizontal')
       plt.setp(hpatches, 'facecolor', 'm')
       plt.axhline(0, linestyle = '--', color = 'k')
-      plt.title('delta fpr')
+      plt.title('$\Delta_p^{FPR}$')
 
       plt.subplot(221)
       n, bins, hpatches = plt.hist(delta_tprs, bins = 30, normed = False,
@@ -622,7 +649,7 @@ def roc(res_paths):
                                    align = 'mid')
       plt.setp(hpatches, 'facecolor', 'm')
       plt.axvline(0, linestyle = '--', color = 'k')
-      plt.title('delta tpr')
+      plt.title('$\Delta_p^{TPR}$')
 
   """
   Parameters of interest.

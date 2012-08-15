@@ -13,11 +13,31 @@ a false positive and a false negative are comparable.
 
 \section{ROC Curve Envelopes}
 
-Figure \ref{fig:roc_env} shows the false positive rates ($FPR$) and true
-positive rates ($TPR$) that result from varying each detection parameter,
-aggregated over all combinations of the remaining parameters. The left side of
-each plot shows a scatter plot of false positive and true positive rates, while
-the right side shows the upper-left-most envelope of the set of all ROC curves.
+Figures \ref{fig:roc_env1} and \ref{fig:roc_env2} shows the false positive
+rates ($FPR$) and true positive rates ($TPR$) that result from varying each
+detection parameter, aggregated over all combinations of the remaining
+parameters. The left side of each plot shows a scatter plot of false positive
+and true positive rates, while the right side shows the upper-left-most envelope
+of the set of all ROC curves.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/gamma}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/threshold}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/cmpr_window}
+\end{center}
+\caption{\label{fig:roc_env2}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/w_smooth}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/req_consec_detections}
+\includegraphics[height=2.5in]{../fig/final/scatter_env/detection_window_hrs}
+\end{center}
+\caption{\label{fig:roc_env1}}
+\end{figure}
+
 
 \section{Examples} %TODO: Call this something better
 
@@ -59,6 +79,13 @@ $FPR$, moving up the curve.
 
 Figure \ref{deltas} shows this effect for each parameter.
 
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=4in]{../fig/final/delta_hist/gamma}
+\end{center}
+\caption{\label{fig:roc_env2}}
+\end{figure}
+
 % TODO: Figure
 
 % TODO: consistent effect, vs contingent effect
@@ -73,7 +100,6 @@ Increasing \vt{Threshold} always moves us down the curve.
 Increasing \vt{ReqConsecDetections} always moves us down the curve.
 
 % TODO: Discuss effect on relative detection time
-
 
 %TODO: Ranking of all combinations of fixed parameters based on tpr (and based
 %on fpr). Show many (ranked) thumbnail ROC curves for each varying parameter.
