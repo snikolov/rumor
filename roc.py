@@ -446,24 +446,24 @@ def roc(res_paths):
     plot_delta_dist = True
     if plot_delta_dist and delta_fprs and delta_tprs:
       plt.figure()
-      plt.subplot(221)
-      heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=40)
+      plt.subplot(223)
+      heatmap, xedges, yedges = np.histogram2d(delta_fprs, delta_tprs, bins=30)
       extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
-      plt.contour(heatmap, 50, extent=extent)
+      plt.contour(heatmap, 35, extent=extent)
       plt.hold(True)
       plt.axvline(0, linestyle = '--', color = 'k')
       plt.axhline(0, linestyle = '--', color = 'k')
 
-      plt.subplot(222)
-      n, bins, hpatches = plt.hist(delta_fprs, bins = 40, normed = False,
+      plt.subplot(224)
+      n, bins, hpatches = plt.hist(delta_fprs, bins = 30, normed = False,
                                    histtype = 'stepfilled', color = 'k',
-                                   align = 'mid')
+                                   align = 'mid', orientation = 'horizontal')
       plt.setp(hpatches, 'facecolor', 'm')
-      plt.axvline(0, linestyle = '--', color = 'k')
+      plt.axhline(0, linestyle = '--', color = 'k')
       plt.title('delta fpr')
 
-      plt.subplot(223)
-      n, bins, hpatches = plt.hist(delta_tprs, bins = 40, normed = False,
+      plt.subplot(221)
+      n, bins, hpatches = plt.hist(delta_tprs, bins = 30, normed = False,
                                    histtype = 'stepfilled', color = 'k',
                                    align = 'mid')
       plt.setp(hpatches, 'facecolor', 'm')
