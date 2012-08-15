@@ -170,6 +170,7 @@ def roc(res_paths):
             fprs_combo = all_fprs_prod[combo_i]
             tprs_combo = all_tprs_prod[combo_i]
             # Don't include deltas that are "stuck" in the 0,0 or 1,1 corner.
+            """
             fprs_combo_not_stuck = [ fprs_combo[j]
                                      for j in range(len(fprs_combo))
                                      if fprs_combo[j] != 0 and \
@@ -182,6 +183,16 @@ def roc(res_paths):
                                        fprs_combo[j] != 1 and \
                                        tprs_combo[j] != 0 and \
                                        tprs_combo[j] != 1 ]
+            """
+            fprs_combo_not_stuck = [ fprs_combo[j]
+                                     for j in range(1, len(fprs_combo))
+                                     if fprs_combo[j] != fprs_combo[j-1] and \
+                                       tprs_combo[j] != tprs_combo[j-1] ]
+            tprs_combo_not_stuck = [ tprs_combo[j]
+                                     for j in range(1, len(tprs_combo))
+                                     if fprs_combo[j] != fprs_combo[j-1] and \
+                                       tprs_combo[j] != tprs_combo[j-1] ]
+
             tprs_combo = tprs_combo_not_stuck
             fprs_combo = fprs_combo_not_stuck
             new_delta_fprs = [ (fprs_combo[i] - fprs_combo[i-1]) / \
@@ -214,10 +225,13 @@ def roc(res_paths):
             """
             # Store copies of all_fprs and all_tprs as well so we can plot ROC
             # curves at the end in order of rank.
+            
             delta_rank[curr_params] = (np.mean(delta_fprs_curr_params),
                                        np.mean(delta_tprs_curr_params),
-                                       all_fprs[:], all_tprs[:])
-
+                                       all_fprs[:], all_tprs[:],
+                                       delta_fprs_curr_params[:],
+                                       delta_tprs_curr_params[:])
+            
           # Record measures of 'position' for this ROC curve to use for ranking
           # ROC curves by how far 'up' or 'down' they are. %TODO: awkward
           # phrasing.
@@ -381,7 +395,50 @@ def roc(res_paths):
     print var_attr    
     # For current var_attr, compute rank of all other parameters by how far "up"
     # or "down" the ROC curve lies in the continuum of FPR/TPR tradeoffs.
-    # updown_rank = [ for udr in updown_rank ]
+    updown_rank = [ [udr, updown_rank[udr]] for udr in updown_rank ]
+    updown_rank_f_min = sorted(updown_rank, key = lambda x: x[1][0], reverse = True)
+    updown_rank_t_min = sorted(updown_rank, key = lambda x: x[1][1], reverse = True)
+    updown_rank_f_max = sorted(updown_rank, key = lambda x: x[1][2], reverse = True)
+    updown_rank_t_max = sorted(updown_rank, key = lambda x: x[1][3], reverse = True)
+    
+    plot_roc_updown_ranked = True
+    if plot_roc_updown_ranked:
+      for updown_rank_sorted in [ updown_rank_f_min, updown_rank_f_max ]:
+        print '\n\n'
+        for udri, udr in enumerate(updown_rank_sorted):
+          if udri > 50:
+            break
+          udr_params = udr[0]
+          udr_f_min_score = udr[1][0]
+          udr_t_min_score = udr[1][1]
+          udr_f_max_score = udr[1][2]
+          udr_t_max_score = udr[1][3]
+          print 'upr_f_min_score', udr_f_min_score
+          print 'upr_t_min_score', udr_t_min_score
+          print 'upr_f_max_score', udr_f_max_score
+          print 'upr_t_max_score', udr_t_max_score
+          udr_all_fprs = udr[1][4]
+          udr_all_tprs = udr[1][5]
+          udr_mean_fprs = [ np.mean(daf) for daf in udr_all_fprs ]
+          udr_mean_tprs = [ np.mean(dat) for dat in udr_all_tprs ]
+          udr_std_fprs = [ np.std(daf) for daf in udr_all_fprs ]
+          udr_std_tprs = [ np.std(dat) for dat in udr_all_tprs ]
+
+          plt.figure(figsize = (3,3))
+          plt.errorbar(udr_mean_fprs, udr_mean_tprs, udr_std_fprs, udr_std_tprs,
+                       linestyle = 'None', color = 'k')
+          plt.hold(True)
+          plt.scatter(udr_mean_fprs, udr_mean_tprs,
+                      s = [ 1 + 10 * i for i in range(len(udr_mean_tprs)) ],
+                      c = 'k')
+          # __str__() doesn't work for some reason... TODO
+          print udr_params.__str__
+          plt.xlim([-0.25, 1.25])
+          plt.ylim([-0.25, 1.25])
+          plt.grid(True)
+          raw_input()
+          plt.hold(False)
+    
 
     # For current var_attr, compute rank of all other parameters by how much
     # positive and negative delta fprs and delta tprs they cause.
@@ -397,36 +454,42 @@ def roc(res_paths):
 
     plot_roc_delta_ranked = False
     if plot_roc_delta_ranked:
-      for drfi, drf in enumerate(delta_rank_f):
-        if drfi > 30:
-          break
-        drf_params = drf[0]
-        drf_ffgz = drf[1][0]
-        drf_tfgz = drf[1][1]
-        print 'delta fpr fraction >= 0', drf_ffgz
-        print 'delta tpr fraction >= 0', drf_tfgz
-        drf_all_fprs = drf[1][2]
-        drf_all_tprs = drf[1][3]
-        drf_mean_fprs = [ np.mean(daf) for daf in drf_all_fprs ]
-        drf_mean_tprs = [ np.mean(dat) for dat in drf_all_tprs ]
-        drf_std_fprs = [ np.std(daf) for daf in drf_all_fprs ]
-        drf_std_tprs = [ np.std(dat) for dat in drf_all_tprs ]
-        plt.errorbar(drf_mean_fprs, drf_mean_tprs, drf_std_fprs, drf_std_tprs,
-                     linestyle = 'None')
-        plt.hold(True)
-        plt.scatter(drf_mean_fprs, drf_mean_tprs,
-                    s = [ 1 + 5 * i for i in range(len(drf_mean_tprs)) ],
-                    c = 'k')
-        plt.xlim([0,1])
-        plt.ylim([0,1])
-        raw_input()
-        plt.hold(False)
+      for delta_rank_sorted in [ delta_rank_f, delta_rank_t ]:
+        print '\n\n'
+        for dri, dr in enumerate(delta_rank_sorted):
+          if dri > 50:
+            break
+          dr_params = dr[0]
+          dr_fscore = dr[1][0]
+          dr_tscore = dr[1][1]
+          print 'delta fpr score', dr_fscore, 'delta tpr score', dr_tscore
+          dr_all_fprs = dr[1][2]
+          dr_all_tprs = dr[1][3]
+          dr_mean_fprs = [ np.mean(daf) for daf in dr_all_fprs ]
+          dr_mean_tprs = [ np.mean(dat) for dat in dr_all_tprs ]
+          dr_std_fprs = [ np.std(daf) for daf in dr_all_fprs ]
+          dr_std_tprs = [ np.std(dat) for dat in dr_all_tprs ]
+
+          plt.figure(figsize = (3,3))
+          plt.errorbar(dr_mean_fprs, dr_mean_tprs, dr_std_fprs, dr_std_tprs,
+                       linestyle = 'None', color = 'k')
+          plt.hold(True)
+          plt.scatter(dr_mean_fprs, dr_mean_tprs,
+                      s = [ 1 + 10 * i for i in range(len(dr_mean_tprs)) ],
+                      c = 'k')
+          # __str__() doesn't work for some reason... TODO
+          print dr_params.__str__
+          plt.xlim([-0.25, 1.25])
+          plt.ylim([-0.25, 1.25])
+          plt.grid(True)
+          raw_input()
+          plt.hold(False)
 
     plot_secondary_effect = False
     if plot_secondary_effect:
       for const_attr in const_attrs:
         const_attr_values_f = [ dr[0]._asdict()[const_attr]
-                                for dr in delta_rank_f ]
+                              for dr in delta_rank_f ]
         rank_scores_f = [dr[1][0] for dr in delta_rank_f]
         const_attr_values_t = [ dr[0]._asdict()[const_attr]
                                 for dr in delta_rank_t ]
@@ -434,16 +497,72 @@ def roc(res_paths):
 
         plt.subplot(121)
         plt.scatter(const_attr_values_f, rank_scores_f)
+        plt.hold(True)
+        plt.axhline(0, linestyle = '--', color = 'k')
         plt.title('fpr ' + const_attr)
+        plt.hold(False)
 
         plt.subplot(122)
         plt.scatter(const_attr_values_t, rank_scores_t)
+        plt.hold(True)
+        plt.axhline(0, linestyle = '--', color = 'k')
         plt.title('tpr ' + const_attr)
-
+        plt.hold(False)
         raw_input()
 
+    plot_secondary_effect_hist = False
+    if plot_secondary_effect_hist:
+      for const_attr in const_attrs:
+        const_attr_values = const_attrs_allowed_values[const_attr]
+        for const_attr_value in const_attr_values:
+          print const_attr, '=', const_attr_value
+          dr_delta_fprs = []
+          dr_delta_tprs = []
+          delta_fprs_for_const_attr_value = []
+          delta_fprs_for_const_attr_value = []
+          entries_for_const_attr_value = \
+              [ drf[1] for drf in delta_rank_f 
+                if drf[0]._asdict()[const_attr] == const_attr_value ]
+          if not entries_for_const_attr_value:
+            # It is possible that for the given const_attr_value, none of deltas
+            # made the criterion for inclusion. For example, they might have
+            # been skipped because they corresponded to points on the ROC curve
+            # "stuck" near (0,0) or (1,1), for which deltas are meaningless.
+            continue
+          for dr in entries_for_const_attr_value:
+            dr_delta_fprs.extend(dr[4])
+            dr_delta_tprs.extend(dr[5])
+
+          plt.figure()
+          plt.subplot(223)
+          heatmap, xedges, yedges = np.histogram2d(dr_delta_fprs,
+                                                   dr_delta_tprs, bins=30)
+          extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
+          plt.contour(heatmap, 35, extent=extent)
+          plt.hold(True)
+          plt.axvline(0, linestyle = '--', color = 'k')
+          plt.axhline(0, linestyle = '--', color = 'k')
+
+          plt.subplot(224)
+          n, bins, hpatches = plt.hist(dr_delta_fprs, bins = 30, normed = False,
+                                       histtype = 'stepfilled', color = 'k',
+                                       align = 'mid', orientation = 'horizontal')
+          plt.setp(hpatches, 'facecolor', 'm')
+          plt.axhline(0, linestyle = '--', color = 'k')
+          plt.title('delta fpr')
+
+          plt.subplot(221)
+          n, bins, hpatches = plt.hist(dr_delta_tprs, bins = 30, normed = False,
+                                       histtype = 'stepfilled', color = 'k',
+                                       align = 'mid')
+          plt.setp(hpatches, 'facecolor', 'm')
+          plt.axvline(0, linestyle = '--', color = 'k')
+          plt.title('delta tpr')
+
+          raw_input()
+
     # Plot deltas in fpr and tpr as 2d histogram.
-    plot_delta_dist = True
+    plot_delta_dist = False
     if plot_delta_dist and delta_fprs and delta_tprs:
       plt.figure()
       plt.subplot(223)

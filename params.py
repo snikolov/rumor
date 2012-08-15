@@ -34,7 +34,6 @@ params_list = ['pos_path',
 
 class Params(namedtuple("Params", params_list)):
   __slots__ = ()
-  @property
   def __str__(self):
     return 'threshold=' + str(self.threshold) + ',' + \
       'cmpr_window=' + str(self.cmpr_window) + ',' + \
@@ -42,3 +41,11 @@ class Params(namedtuple("Params", params_list)):
       'gamma=' + str(self.gamma) + ',' + \
       'detection_window_hrs=' + str(self.detection_window_hrs) + ',' + \
       'req_consec_detections=' + str(self.req_consec_detections)
+
+  def __str_short__(self):
+    return str(self.threshold) + ',' + \
+      str(self.cmpr_window) + ',' + \
+      str(self.w_smooth) + ',' + \
+      str(self.gamma) + ',' + \
+      str(self.detection_window_hrs) + ',' + \
+      str(self.req_consec_detections)
