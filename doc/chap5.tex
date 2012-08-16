@@ -77,13 +77,30 @@ down the curve. If, on the other hand, most of the mass is at values less than
 zero, an increase in $p$ causes an increase in $TPR$ at the expensive of higher
 $FPR$, moving up the curve.
 
-Figure \ref{deltas} shows this effect for each parameter.
+Figure \ref{fig:deltas} shows this effect for each parameter.
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[height=4in]{../fig/final/delta_hist/gamma}
+\includegraphics[width=4in]{../fig/final/delta_hist/gamma}
+\includegraphics[width=4in]{../fig/final/delta_hist/gamma}
 \end{center}
-\caption{\label{fig:roc_env2}}
+\caption{\label{fig:deltas1}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=4in]{../fig/final/delta_hist/cmpr_window}
+\includegraphics[width=4in]{../fig/final/delta_hist/threshold}
+\end{center}
+\caption{\label{fig:deltas2}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=4in]{../fig/final/delta_hist/w_smooth}
+\includegraphics[width=4in]{../fig/final/delta_hist/req_consec_detections}
+\end{center}
+\caption{\label{fig:deltas3}}
 \end{figure}
 
 % TODO: Figure
@@ -98,6 +115,184 @@ remaining parameters, at least within the range of values explored.
 Increasing \vt{Gamma} always moves us up the curve.
 Increasing \vt{Threshold} always moves us down the curve.
 Increasing \vt{ReqConsecDetections} always moves us down the curve.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/cmpr_window}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/threshold}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/w_smooth}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec1} Secondary effects of parameters for a varying \vt{Gamma}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/gamma}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/threshold}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/w_smooth}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/detection_window_hrs}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec2} Secondary effects of parameters for a varying \vt{CmprWindow}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/gamma}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/cmpr_window}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/w_smooth}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/detection_window_hrs}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec3} Secondary effects of parameters for a varying \vt{Threshold}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/gamma}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/cmpr_window}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/threshold}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/detection_window_hrs}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec4} Secondary effects of parameters for a varying \vt{WSmooth}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/gamma}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/cmpr_window}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/threshold}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/w_smooth}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec5} Secondary effects of parameters for a varying \vt{DetectionWindowHrs}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/cmpr_window}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/threshold}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/w_smooth}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/detection_window_hrs}
+\includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of parameters for a varying \vt{ReqConsecDetections}}
+\end{figure}
+
+% Top and bottom ROC curves
+Figures that show the top and bottom ROC curves ranked by mean $\Delta_p^{FPR}$ and mean $\Delta_p^{TPR}$.
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/gamma}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/gamma}
+\end{center}
+\caption{\label{fig:delta_top_bottom1f} Top and bottom $\Delta_p^{FPR}$ for \vt{Gamma}}
+\end{figure}
+
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/gamma}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/gamma}
+\end{center}
+\caption{\label{fig:delta_top_bottom1t} Top and bottom $\Delta_p^{TPR}$ for \vt{Gamma}}
+\end{figure}
+
+
+
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/cmpr_window}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/cmpr_window}
+\end{center}
+\caption{\label{fig:delta_top_bottom2f} Top and bottom $\Delta_p^{FPR}$ for \vt{CmprWindow}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/cmpr_window}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/cmpr_window}
+\end{center}
+\caption{\label{fig:delta_top_bottom2t} Top and bottom $\Delta_p^{TPR}$ for \vt{CmprWindow}}
+\end{figure}
+
+
+
+% Threshold
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/threshold}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/threshold}
+\end{center}
+\caption{\label{fig:delta_top_bottom3f} Top and bottom $\Delta_p^{FPR}$ for \vt{Threshold}}
+\end{figure}
+
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/threshold}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/threshold}
+\end{center}
+\caption{\label{fig:delta_top_bottom3t} Top and bottom $\Delta_p^{TPR}$ for \vt{Threshold}}
+\end{figure}
+
+
+
+% WSmooth
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/w_smooth}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/w_smooth}
+\end{center}
+\caption{\label{fig:delta_top_bottom4f} Top and bottom $\Delta_p^{FPR}$ for \vt{WSmooth}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/w_smooth}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/w_smooth}
+\end{center}
+\caption{\label{fig:delta_top_bottom4t} Top and bottom $\Delta_p^{TPR}$ for \vt{WSmooth}}
+\end{figure}
+
+
+% DetectionWindowHrs
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/detection_window_hrs}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/detection_window_hrs}
+\end{center}
+\caption{\label{fig:delta_top_bottom5f} Top and bottom $\Delta_p^{FPR}$ for \vt{DetectionWindowHrs}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/detection_window_hrs}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/detection_window_hrs}
+\end{center}
+\caption{\label{fig:delta_top_bottom5t} Top and bottom $\Delta_p^{TPR}$ for \vt{DetectionWindowHrs}}
+\end{figure}
+
+% ReqConsecDetections
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_fpr/req_consec_detections}
+\includegraphics[height=3in]{../fig/final/bottom_fpr/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_top_bottom6f} Top and bottom $\Delta_p^{FPR}$ for \vt{ReqConsecDetections}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=3in]{../fig/final/top_tpr/req_consec_detections}
+\includegraphics[height=3in]{../fig/final/bottom_tpr/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_top_bottom6t} Top and bottom $\Delta_p^{TPR}$ for \vt{ReqConsecDetections}}
+\end{figure}
 
 % TODO: Discuss effect on relative detection time
 
