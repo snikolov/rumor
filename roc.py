@@ -491,14 +491,14 @@ def roc(res_paths):
           # Plot thumbnails.
           plt.subplot(5, 5, udri + 1)
           plt.errorbar(udr_mean_fprs, udr_mean_tprs, udr_std_fprs, udr_std_tprs,
-                       linestyle = 'None', color = 'k')
+                       linestyle = 'None', color = 'b')
           plt.hold(True)
           plt.scatter(udr_mean_fprs, udr_mean_tprs,
-                      s = [ 1 + 10 * i for i in range(len(udr_mean_tprs)) ],
-                      c = 'k')
+                      s = [ 2 + 15 * i for i in range(len(udr_mean_tprs)) ],
+                      c = 'b')
           # __str__() doesn't work for some reason... TODO
           plt.title(str([udr_params._asdict()[k]
-                         for k in (const_attrs + [var_attr])]), fontsize = 11)
+                         for k in const_attrs]), fontsize = 11)
           plt.setp(plt.gca(), xticklabels=[])
           plt.setp(plt.gca(), yticklabels=[])
           print udr_params.__str__
@@ -514,9 +514,9 @@ def roc(res_paths):
     # positive and negative delta fprs and delta tprs they cause.
     delta_rank = [ [drk, delta_rank[drk]] for drk in delta_rank ]
     delta_rank_f = sorted(delta_rank, key = lambda x: x[1][0],
-                          reverse = False)
-    delta_rank_t = sorted(delta_rank, key = lambda x: x[1][1],
                           reverse = True)
+    delta_rank_t = sorted(delta_rank, key = lambda x: x[1][1],
+                          reverse = False)
     # print '\n\ndelta_rank_f'
     # pp.pprint(delta_rank_f)
     # print '\n\ndelta_rank_t'
@@ -524,10 +524,11 @@ def roc(res_paths):
 
     plot_roc_delta_ranked = True
     if plot_roc_delta_ranked:
-      for delta_rank_sorted in [ delta_rank_f ]:
+      for delta_rank_sorted in [ delta_rank_t ]:
         print '\n\n'
         plt.figure(figsize = (10,5))
-        plt.suptitle('Bottom $\Delta_p^{FPR}$ for ' + var_attr)
+        plt.suptitle('Bottom $\Delta_p^{TPR}$ for ' + var_attr + \
+                       '\nconstant params = ' + str(const_attrs))
         for dri, dr in enumerate(delta_rank_sorted):
           if dri >= 8:
             break
@@ -544,13 +545,13 @@ def roc(res_paths):
 
           plt.subplot(2, 4, dri + 1)
           plt.errorbar(dr_mean_fprs, dr_mean_tprs, dr_std_fprs, dr_std_tprs,
-                       linestyle = 'None', color = 'k')
+                       linestyle = 'None', color = 'b')
           plt.hold(True)
           plt.scatter(dr_mean_fprs, dr_mean_tprs,
                       s = [ 2 + 15 * i for i in range(len(dr_mean_tprs)) ],
-                      c = 'k')
+                      c = 'b')
           plt.title(str([dr_params._asdict()[k]
-                         for k in (const_attrs + [var_attr])]), fontsize = 11)
+                         for k in const_attrs]), fontsize = 11)
           # __str__() doesn't work for some reason... TODO
           print dr_params.__str__
           plt.xlim([-0.1, 1.1])
@@ -562,8 +563,8 @@ def roc(res_paths):
           #plt.setp(plt.gca(), xticklabels=[])
           #plt.setp(plt.gca(), yticklabels=[])
           plt.hold(False)
-        plt.gcf().subplots_adjust(top = 0.85, wspace = 0.45, hspace = 0.45)
-        plt.savefig('fig/final/bottom_fpr/' + var_attr + '.eps')
+        plt.gcf().subplots_adjust(top = 0.80, wspace = 0.45, hspace = 0.45)
+        plt.savefig('fig/final/bottom_tpr/' + var_attr + '.eps')
         plt.draw()
 
     plot_secondary_effect = False
@@ -594,9 +595,13 @@ def roc(res_paths):
     plot_secondary_effect_hist = False
     if plot_secondary_effect_hist:
       for (cai, const_attr) in enumerate(const_attrs):
-        plt.figure(figsize = (12, 3))
+        plt.figure(figsize = (14, 3))
         const_attr_values = const_attrs_allowed_values[const_attr]
-        subplot_count = 0
+        # Store all heatmaps and extents, get a common extent, and plot all
+        # heatmaps together at the end.
+        dr_all_delta_fprs = []
+        dr_all_delta_tprs = []
+        ranges = []
         for (cavi, const_attr_value) in enumerate(const_attr_values):
           print const_attr, '=', const_attr_value
           dr_delta_fprs = []
@@ -615,18 +620,11 @@ def roc(res_paths):
             dr_delta_tprs.extend(dr[5])
 
           #plt.subplot(223)
-          plt.subplot(1, 4, subplot_count + 1)
-          heatmap, xedges, yedges = np.histogram2d(dr_delta_tprs, dr_delta_fprs, bins=30)
-          extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
-          plt.contour(heatmap, 35, extent=extent)
-          plt.hold(True)
-          plt.axvline(0, linestyle = '--', color = 'k')
-          plt.axhline(0, linestyle = '--', color = 'k')
-          plt.title(const_attr + '=' + str(const_attr_value))
-          subplot_count += 1
-          if cavi == 0:
-            plt.ylabel('$\Delta_p^{TPR}$', fontsize = 15)
-          plt.xlabel('$\Delta_p^{FPR}$', fontsize = 15)
+          dr_all_delta_fprs.append(dr_delta_fprs)
+          dr_all_delta_tprs.append(dr_delta_tprs)
+          ranges.append([[min(dr_delta_fprs), max(dr_delta_fprs)],
+                         [min(dr_delta_tprs), max(dr_delta_tprs)]])
+
           """
           plt.subplot(334)
           n, bins, hpatches = plt.hist(dr_delta_tprs, bins = 30, normed = False,
@@ -650,7 +648,42 @@ def roc(res_paths):
           """
           #plt.savefig('fig/final/delta_hist_sec/' + var_attr + '_' + \
           #              const_attr + '_' + const_attr_value + '.eps')
-
+        """
+        miny = min([ extent[0] for extent in extents ])
+        maxy = max([ extent[1] for extent in extents ])
+        minx = min([ extent[2] for extent in extents ])
+        maxx = max([ extent[3] for extent in extents ])
+        
+        extent = [miny, maxy, minx, maxx]
+        """
+        xmin = min([ rangei[0][0] for rangei in ranges ])
+        xmax = max([ rangei[0][1] for rangei in ranges ])
+        ymin = min([ rangei[1][0] for rangei in ranges ])
+        ymax = max([ rangei[1][1] for rangei in ranges ])
+        common_range = [[ymin, ymax], [xmin, xmax]]
+        for ri in xrange(len(ranges)):
+          dr_delta_fprs = dr_all_delta_fprs[ri]
+          dr_delta_tprs = dr_all_delta_tprs[ri]
+          plt.subplot(1, 4, ri + 1)
+          heatmap, xedges, yedges = np.histogram2d(dr_delta_tprs,
+            dr_delta_fprs, bins=25, range = common_range)
+          extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
+          plt.contour(heatmap, 20, extent = extent)
+          plt.hold(True)
+          plt.axvline(0, ls = '--', lw = 1.5, color = 'k')
+          plt.axhline(0, ls = '--', lw = 1.5, color = 'k')
+          plt.axvline(np.mean(dr_delta_fprs), ls = ':',
+                      color = 'k')
+          plt.axhline(np.mean(dr_delta_tprs), ls = ':',
+                      color = 'k')
+          plt.title(const_attr + '=' + str(const_attr_values[ri]))
+          if ri == 0:
+            plt.ylabel('$\Delta_p^{TPR}$', fontsize = 15)
+          plt.xlabel('$\Delta_p^{FPR}$', fontsize = 15)
+          plt.draw()
+        plt.gcf().subplots_adjust(bottom = 0.20, wspace = 0.35)
+        plt.savefig('fig/final/delta_hist_sec/' + var_attr + '/' + \
+                      const_attr + '.eps')
         raw_input()
 
     # Plot deltas in fpr and tpr as 2d histogram.
