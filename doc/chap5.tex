@@ -51,6 +51,10 @@ False negatives. Stuff with too little volume or not enough spikes.
 
 \section{Effect of Parameters}
 
+For each ROC curve, we have a parameter that varies to produce the ROC curve,
+which we will call the variable paramter, and a fixed combination of the
+remaining paramters, which we will call the constant parameters.
+
 Do we move up or down the curve?
 
 We show how varying a given parameter $p$ trades off $FPR$ for $TPR$ by
@@ -77,30 +81,67 @@ down the curve. If, on the other hand, most of the mass is at values less than
 zero, an increase in $p$ causes an increase in $TPR$ at the expensive of higher
 $FPR$, moving up the curve.
 
-Figure \ref{fig:deltas} shows this effect for each parameter.
+Sometimes, the curve moves neither toward $(0,0)$ (``down the curve'') nor
+toward $(1,1)$ (``up the curve'') but toward $(0,1)$ or $(1,0)$. The former
+represents an increase in $TPR$ in addition to a decrease in $FPR$ --- a win-win
+situation. The latter represents the exact opposite of that --- an increase in
+$FPR$ and a decrease in $TPR$.
+
+Note that consecutive $(x0,0)$ or $(1,1)$ points on an ROC curve were not
+counted when computing $\Delta_p^{FPR}$ and $\Delta_p^{TPR}$, since no amount of
+change in the variable paramter can move further and the resulting delta of 0 is
+meaningless.
+
+Figures \ref{fig:deltas1}-\ref{fig:deltas6} shows this effect for each parameter.
+
+\clearpage
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=4in]{../fig/final/delta_hist/gamma}
-\includegraphics[width=4in]{../fig/final/delta_hist/gamma}
 \end{center}
-\caption{\label{fig:deltas1}}
+\caption{\label{fig:deltas1}  Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{Gamma}.}
 \end{figure}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=4in]{../fig/final/delta_hist/cmpr_window}
+\end{center}
+\caption{\label{fig:deltas2}  Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{CmprWindow}. }
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
 \includegraphics[width=4in]{../fig/final/delta_hist/threshold}
 \end{center}
-\caption{\label{fig:deltas2}}
+\caption{\label{fig:deltas3}  Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{Threshold}.}
 \end{figure}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=4in]{../fig/final/delta_hist/w_smooth}
+\end{center}
+\caption{\label{fig:deltas4}  Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{WSmooth}.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=4in]{../fig/final/delta_hist/detection_window_hrs}
+\end{center}
+\caption{\label{fig:deltas5}  Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{DetectionWindowHrs}.}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
 \includegraphics[width=4in]{../fig/final/delta_hist/req_consec_detections}
 \end{center}
-\caption{\label{fig:deltas3}}
+\caption{\label{fig:deltas6} Distribution of $[\Delta_p^{FPR},\Delta_p^{TPR}]^T$
+  for variable parameter \vt{ReqConsecDetections}.}
 \end{figure}
 
 % TODO: Figure
@@ -117,6 +158,14 @@ Increasing \vt{Threshold} always moves us down the curve.
 Increasing \vt{ReqConsecDetections} always moves us down the curve.
 
 \clearpage
+Some variable parameters, however, do not appear to have a consistent effect
+across all combinations of constant parameters. To investigate how pairs of
+parameters interact, we show the distribution of $[\Delta_p^{FPR},
+  \Delta_p^{TPR}]^T$ resulting from a given variable paramter, various settings
+of a chosen constant parameter, and all combinations of the remaining constant
+parameters. Figures \ref{fig:delta_sec1}-\ref{fig:delta_sec6} show these
+effects.
+
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/cmpr_window}
@@ -124,7 +173,7 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/w_smooth}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec1} Secondary effects of parameters for a varying \vt{Gamma}}
+\caption{\label{fig:delta_sec1} Secondary effects of constant parameters for variable parameter \vt{Gamma}}
 \end{figure}
 
 \begin{figure}[!h]
@@ -135,7 +184,7 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/detection_window_hrs}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/cmpr_window/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec2} Secondary effects of parameters for a varying \vt{CmprWindow}}
+\caption{\label{fig:delta_sec2} Secondary effects of constant parameters for variable parameter \vt{CmprWindow}}
 \end{figure}
 
 \begin{figure}[!h]
@@ -146,7 +195,7 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/detection_window_hrs}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/threshold/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec3} Secondary effects of parameters for a varying \vt{Threshold}}
+\caption{\label{fig:delta_sec3} Secondary effects of constant parameters for variable parameter \vt{Threshold}}
 \end{figure}
 
 \begin{figure}[!h]
@@ -157,7 +206,7 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/detection_window_hrs}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/w_smooth/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec4} Secondary effects of parameters for a varying \vt{WSmooth}}
+\caption{\label{fig:delta_sec4} Secondary effects of constant parameters for variable parameter \vt{WSmooth}}
 \end{figure}
 
 \begin{figure}[!h]
@@ -168,7 +217,7 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/w_smooth}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/detection_window_hrs/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec5} Secondary effects of parameters for a varying \vt{DetectionWindowHrs}}
+\caption{\label{fig:delta_sec5} Secondary effects of constant parameters for variable parameter \vt{DetectionWindowHrs}}
 \end{figure}
 
 \begin{figure}[!h]
@@ -179,12 +228,18 @@ Increasing \vt{ReqConsecDetections} always moves us down the curve.
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/detection_window_hrs}
 \includegraphics[height=1.5in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
 \end{center}
-\caption{\label{fig:delta_sec6} Secondary effects of parameters for a varying \vt{ReqConsecDetections}}
+\caption{\label{fig:delta_sec6} Secondary effects of constant parameters for variable parameter \vt{ReqConsecDetections}}
 \end{figure}
 
 \clearpage
 % Top and bottom ROC curves
-Figures \ref{fig:delta_top_bottom1f,fig:delta_top_bottom1t,fig:delta_top_bottom2f,fig:delta_top_bottom2t,fig:delta_top_bottom3f,fig:delta_top_bottom3t,fig:delta_top_bottom4f,fig:delta_top_bottom4t,fig:delta_top_bottom5f,fig:delta_top_bottom5t,fig:delta_top_bottom6f,fig:delta_top_bottom6t} show the top and bottom ROC curves ranked by mean $\Delta_p^{FPR}$ and mean $\Delta_p^{TPR}$. For each varying parameter, the ROC curves with the top mean $\Delta_p^{FPR}$ show the values of the constant parameters for which the variable parameter has the largest positive effect on $FPR$. Similarly, the bottom-ranked ROC curves represent ROC curves for which the variable parameter has the lowest positive (possibly negative) effect on $FPR$.
+Figures \ref{fig:delta_top_bottom1f}-\ref{fig:delta_top_bottom6t} show the top
+and bottom ROC curves ranked by mean $\Delta_p^{FPR}$ and mean
+$\Delta_p^{TPR}$. For each varying parameter, the ROC curves with the top mean
+$\Delta_p^{FPR}$ show the values of the constant parameters for which the
+variable parameter has the largest positive effect on $FPR$. Similarly, the
+bottom-ranked ROC curves represent ROC curves for which the variable parameter
+has the lowest positive (possibly negative) effect on $FPR$.
 
 \begin{figure}[!h]
 \begin{center}
