@@ -27,6 +27,15 @@ def early(res_path):
 
   pass
 
+def point_to_category(fpr, tpr, fpr_partition_threshold = 0.5,
+                      tpr_partition_threshold = 0.5):
+  if fpr > fpr_partition_threshold and tpr > tpr_partition_threshold:
+    return 'top'
+  elif fpr <= fpr_partition_threshold and tpr <= tpr_partition_threshold:
+    return 'bottom'
+  else:
+    return 'center'
+
 # Draw ROC curves
 def roc(res_paths):
   paramsets = []
@@ -67,9 +76,9 @@ def roc(res_paths):
                'detection_window_hrs', 'req_consec_detections']
   const_attrs_allowed_values = { 'gamma': [0.1, 1, 10],
                                  'cmpr_window': [10, 80, 115, 150],
-                                 #'cmpr_window': [10],
-                                 'threshold': [1],
-                                 #'threshold': [0.65, 1, 3],
+                                 #'cmpr_window': [80],
+                                 #'threshold': [1],
+                                 'threshold': [0.65, 1, 3],
                                  'w_smooth': [10, 80, 115, 150],
                                  'detection_window_hrs': [3, 5, 7, 9],
                                  'req_consec_detections': [1, 3, 5] }
@@ -100,12 +109,15 @@ def roc(res_paths):
     # Mapping from paramset to a measure of how far up or down the ROC curve we are.
     updown_rank = {}
     # Partition deltas by where the ROC curve starts on the FPR/TPR plane.
-    fpr_partition_threshold = 0.5
-    tpr_partition_threshold = 0.5
     deltas_partitioned = {}
     deltas_partitioned['top'] = {}
     deltas_partitioned['center'] = {}
     deltas_partitioned['bottom'] = {}
+    # Partition fprs and tprs by where they are in the FPR/TPR plane
+    rates_partitioned = {}
+    rates_partitioned['top'] = {}
+    rates_partitioned['center'] = {}
+    rates_partitioned['bottom'] = {}
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
@@ -174,9 +186,11 @@ def roc(res_paths):
           # zip on so much data is expensive!
           all_tprs_prod = list(itertools.product(*all_tprs))
           all_fprs_prod = list(itertools.product(*all_fprs))
-          # Separate storage of deltas for current params only.
-          delta_fprs_curr_params = []
-          delta_tprs_curr_params = []
+          # Separate storage of deltas for prev params only (corresponding to
+          # the ROC curve we just finished looking at, and are about to
+          # analyze..
+          delta_fprs_prev_params = []
+          delta_tprs_prev_params = []
 
           for combo_i in xrange(len(all_fprs_prod)):
             fprs_combo = all_fprs_prod[combo_i]
@@ -218,49 +232,52 @@ def roc(res_paths):
                                for i in range(1, len(tprs_combo_not_stuck)) ]
             delta_fprs.extend(new_delta_fprs)
             delta_tprs.extend(new_delta_tprs)
-            delta_fprs_curr_params.extend(new_delta_fprs)
-            delta_tprs_curr_params.extend(new_delta_tprs)
+            delta_fprs_prev_params.extend(new_delta_fprs)
+            delta_tprs_prev_params.extend(new_delta_tprs)
                 
             # Categorize ROC curves by whether they start in the top center or
             # bottom and record the corersponding delta fprs and tprs.
             category = None
             if fprs_combo and tprs_combo:
-              if fprs_combo[0] > fpr_partition_threshold and \
-                    tprs_combo[0] > tpr_partition_threshold:
-                category = 'top'
-              elif fprs_combo[0] < fpr_partition_threshold and \
-                    tprs_combo[0] < tpr_partition_threshold:
-                category = 'bottom'
-              else:
-                category = 'center'
-              deltas_partitioned[category][curr_params] = \
+              category = point_to_category(fprs_combo[0], tprs_combo[0])
+              deltas_partitioned[category][prev_params] = \
                   (new_delta_fprs, new_delta_tprs)
 
+            for pidx in xrange(len(fprs_combo)):
+              category = point_to_category(fprs_combo[pidx],
+                                           tprs_combo[pidx])
+              # This should really be done at the individual point level, not at
+              # the ROC level...
+              actual_params_dict = prev_params._asdict()
+              actual_params_dict[var_attr] = var_attr_values[pidx]
+              actual_params = Params(**actual_params_dict)
+              rates_partitioned[category][actual_params] = \
+                  (fprs_combo[pidx], tprs_combo[pidx])
 
           # Record a measure of change in tpr and fpr for the purpose of
           # ranking which parameters cause the most positive and negative
           # deltas.
           """
-          f_num_geq_zero = len([ ndfpr for ndfpr in delta_fprs_curr_params
+          f_num_geq_zero = len([ ndfpr for ndfpr in delta_fprs_prev_params
                                  if ndfpr >= 0 ])
-          t_num_geq_zero = len([ ndtpr for ndtpr in delta_tprs_curr_params
+          t_num_geq_zero = len([ ndtpr for ndtpr in delta_tprs_prev_params
                                  if ndtpr >= 0 ])
           """
-          if len(delta_fprs_curr_params) > 0 and \
-                len(delta_tprs_curr_params) > 0:
+          if len(delta_fprs_prev_params) > 0 and \
+                len(delta_tprs_prev_params) > 0:
             """
             f_frac_geq_zero = \
-              float(f_num_geq_zero) / len(delta_fprs_curr_params)
+              float(f_num_geq_zero) / len(delta_fprs_prev_params)
             t_frac_geq_zero = \
-              float(t_num_geq_zero) / len(delta_tprs_curr_params)
+              float(t_num_geq_zero) / len(delta_tprs_prev_params)
             """
             # Store copies of all_fprs and all_tprs as well so we can plot ROC
             # curves at the end in order of rank.
-            delta_rank[curr_params] = (np.mean(delta_fprs_curr_params),
-                                       np.mean(delta_tprs_curr_params),
+            delta_rank[prev_params] = (np.mean(delta_fprs_prev_params),
+                                       np.mean(delta_tprs_prev_params),
                                        all_fprs[:], all_tprs[:],
-                                       delta_fprs_curr_params[:],
-                                       delta_tprs_curr_params[:])
+                                       delta_fprs_prev_params[:],
+                                       delta_tprs_prev_params[:])
             
           # Record measures of 'position' for this ROC curve to use for ranking
           # ROC curves by how far 'up' or 'down' they are. %TODO: awkward
@@ -276,7 +293,7 @@ def roc(res_paths):
                                  for all_fprs_i in all_fprs ])
             min_mean_tpr = min([ np.mean(all_tprs_i)
                                  for all_tprs_i in all_tprs ])
-            updown_rank[curr_params] = (min_mean_fpr, min_mean_tpr,
+            updown_rank[prev_params] = (min_mean_fpr, min_mean_tpr,
                                         max_mean_fpr, max_mean_tpr,
                                         all_fprs[:], all_tprs[:])
 
@@ -441,15 +458,30 @@ def roc(res_paths):
       var_attr_count += 1
 
     print var_attr  
+    plot_rates_partitioned = True
+    if plot_rates_partitioned:
+      for category in rates_partitioned:
+        print category
+        cat_params = rates_partitioned[category].keys()
+        attr_to_values = {}
+        for attr in all_attrs:
+          attr_to_values[attr] = []
+          for params in cat_params:
+            attr_to_values[attr].append(params._asdict()[attr])
+
+        cat_mean_attr_values = dict([ [attr, np.mean(attr_to_values[attr])]
+                                      for attr in attr_to_values
+                                      if attr_to_values[attr] ])
+        pp.pprint(cat_mean_attr_values)
+      break
+
     # Partition delta ranked results into 
-    plot_partitioned = True
-    if plot_partitioned:
+    plot_deltas_partitioned = False
+    if plot_deltas_partitioned:
       plt.figure(figsize = (6,9))
       plt.suptitle(var_attr)
       for (ci, category) in enumerate(deltas_partitioned):
-        print '---------'
         print category
-        print '---------'
         deltas_cat = deltas_partitioned[category]
         delta_fprs_cat = []
         for params in deltas_cat:
@@ -459,10 +491,11 @@ def roc(res_paths):
           delta_tprs_cat.extend(deltas_cat[params][1]) 
 
         nbins = 30
-
         if delta_fprs_cat:
-          print 'delta fprs'
           delta_fprs_cat = np.array(delta_fprs_cat)
+          print 'mean delta fprs = %.4f' % np.mean(delta_fprs_cat)
+
+          """
           pos_ind = np.where(delta_fprs_cat > 0)[0]
           neg_ind = np.where(delta_fprs_cat < 0)[0]
 
@@ -478,18 +511,21 @@ def roc(res_paths):
               100 * float(len(delta_fprs_cat[neg_ind])) / len(delta_fprs_cat))
           print 'no change:\t(%.2f%%)' % \
               (100 * float(len(delta_fprs_cat) - len(pos_ind) - len(neg_ind)) / len(delta_fprs_cat))
+          """
 
+          """
           plt.subplot(3, 2, 2 * ci + 1)
           plt.hist(delta_fprs_cat, bins = nbins)
           plt.title(category + '$\Delta_p^{FPR}$')
+          """
         else:
           print 'None'
 
-        print '-----'
-
         if delta_tprs_cat:
-          print 'delta tprs'
           delta_tprs_cat = np.array(delta_tprs_cat)
+          print 'mean delta tprs = %.4f' % np.mean(delta_tprs_cat)
+
+          """
           pos_ind = np.where(delta_tprs_cat > 0)[0]
           neg_ind = np.where(delta_tprs_cat < 0)[0]
 
@@ -506,10 +542,13 @@ def roc(res_paths):
               100 * float(len(delta_tprs_cat[neg_ind])) / len(delta_tprs_cat))
           print 'no change:\t(%.2f%%)' % \
               (100 * float(len(delta_tprs_cat) - len(pos_ind) - len(neg_ind)) / len(delta_tprs_cat))
+          """
 
+          """
           plt.subplot(3, 2, 2 * ci + 2)
           plt.hist(delta_tprs_cat, bins = nbins)
           plt.title(category + '$\Delta_p^{TPR}$')
+          """
         else:
           print 'None'
 
