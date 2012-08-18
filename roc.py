@@ -67,7 +67,9 @@ def roc(res_paths):
                'detection_window_hrs', 'req_consec_detections']
   const_attrs_allowed_values = { 'gamma': [0.1, 1, 10],
                                  'cmpr_window': [10, 80, 115, 150],
-                                 'threshold': [0.65, 1, 3],
+                                 #'cmpr_window': [10],
+                                 'threshold': [1],
+                                 #'threshold': [0.65, 1, 3],
                                  'w_smooth': [10, 80, 115, 150],
                                  'detection_window_hrs': [3, 5, 7, 9],
                                  'req_consec_detections': [1, 3, 5] }
@@ -97,6 +99,13 @@ def roc(res_paths):
     delta_rank = {}
     # Mapping from paramset to a measure of how far up or down the ROC curve we are.
     updown_rank = {}
+    # Partition deltas by where the ROC curve starts on the FPR/TPR plane.
+    fpr_partition_threshold = 0.5
+    tpr_partition_threshold = 0.5
+    deltas_partitioned = {}
+    deltas_partitioned['top'] = {}
+    deltas_partitioned['center'] = {}
+    deltas_partitioned['bottom'] = {}
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
@@ -172,6 +181,7 @@ def roc(res_paths):
           for combo_i in xrange(len(all_fprs_prod)):
             fprs_combo = all_fprs_prod[combo_i]
             tprs_combo = all_tprs_prod[combo_i]
+
             # Don't include deltas that are "stuck" in the 0,0 or 1,1 corner.
             """
             fprs_combo_not_stuck = [ fprs_combo[j]
@@ -191,25 +201,43 @@ def roc(res_paths):
                                      for j in range(1, len(fprs_combo))
                                      if fprs_combo[j] != fprs_combo[j-1] and \
                                        tprs_combo[j] != tprs_combo[j-1] ]
+            if fprs_combo:
+              fprs_combo_not_stuck.insert(0, fprs_combo[0])
             tprs_combo_not_stuck = [ tprs_combo[j]
                                      for j in range(1, len(tprs_combo))
                                      if fprs_combo[j] != fprs_combo[j-1] and \
                                        tprs_combo[j] != tprs_combo[j-1] ]
+            if tprs_combo:
+              tprs_combo_not_stuck.insert(0, tprs_combo[0])
 
-            tprs_combo = tprs_combo_not_stuck
-            fprs_combo = fprs_combo_not_stuck
             new_delta_fprs = [ (fprs_combo[i] - fprs_combo[i-1]) / \
                                  (var_attr_values[i] - var_attr_values[i-1])
-                               for i in range(1, len(fprs_combo)) ]
+                               for i in range(1, len(fprs_combo_not_stuck)) ]
             new_delta_tprs = [ (tprs_combo[i] - tprs_combo[i-1]) / \
                                  (var_attr_values[i] - var_attr_values[i-1])
-                               for i in range(1, len(tprs_combo)) ]
+                               for i in range(1, len(tprs_combo_not_stuck)) ]
             delta_fprs.extend(new_delta_fprs)
             delta_tprs.extend(new_delta_tprs)
             delta_fprs_curr_params.extend(new_delta_fprs)
             delta_tprs_curr_params.extend(new_delta_tprs)
+                
+            # Categorize ROC curves by whether they start in the top center or
+            # bottom and record the corersponding delta fprs and tprs.
+            category = None
+            if fprs_combo and tprs_combo:
+              if fprs_combo[0] > fpr_partition_threshold and \
+                    tprs_combo[0] > tpr_partition_threshold:
+                category = 'top'
+              elif fprs_combo[0] < fpr_partition_threshold and \
+                    tprs_combo[0] < tpr_partition_threshold:
+                category = 'bottom'
+              else:
+                category = 'center'
+              deltas_partitioned[category][curr_params] = \
+                  (new_delta_fprs, new_delta_tprs)
 
-          # Record the fraction of deltas greater than zero for the purpose of
+
+          # Record a measure of change in tpr and fpr for the purpose of
           # ranking which parameters cause the most positive and negative
           # deltas.
           """
@@ -228,7 +256,6 @@ def roc(res_paths):
             """
             # Store copies of all_fprs and all_tprs as well so we can plot ROC
             # curves at the end in order of rank.
-            
             delta_rank[curr_params] = (np.mean(delta_fprs_curr_params),
                                        np.mean(delta_tprs_curr_params),
                                        all_fprs[:], all_tprs[:],
@@ -414,13 +441,92 @@ def roc(res_paths):
       var_attr_count += 1
 
     print var_attr  
+    # Partition delta ranked results into 
+    plot_partitioned = True
+    if plot_partitioned:
+      plt.figure(figsize = (6,9))
+      plt.suptitle(var_attr)
+      for (ci, category) in enumerate(deltas_partitioned):
+        print '---------'
+        print category
+        print '---------'
+        deltas_cat = deltas_partitioned[category]
+        delta_fprs_cat = []
+        for params in deltas_cat:
+          delta_fprs_cat.extend(deltas_cat[params][0]) 
+        delta_tprs_cat = []
+        for params in deltas_cat:
+          delta_tprs_cat.extend(deltas_cat[params][1]) 
+
+        nbins = 30
+
+        if delta_fprs_cat:
+          print 'delta fprs'
+          delta_fprs_cat = np.array(delta_fprs_cat)
+          pos_ind = np.where(delta_fprs_cat > 0)[0]
+          neg_ind = np.where(delta_fprs_cat < 0)[0]
+
+          print 'overall:\t%.4f +/- %.4f' % (np.mean(delta_fprs_cat),
+                                             np.std(delta_fprs_cat))
+          if len(pos_ind) > 0:
+            print 'positive change:\t%.4f +/- %.4f\t(%.2f%%)' % (np.mean(delta_fprs_cat[pos_ind]),
+              np.std(delta_fprs_cat[pos_ind]),
+              100 * float(len(delta_fprs_cat[pos_ind])) / len(delta_fprs_cat))
+          if len(neg_ind) > 0:
+            print 'negative change:\t%.4f +/- %.4f\t(%.2f%%)' % (np.mean(delta_fprs_cat[neg_ind]),
+              np.std(delta_fprs_cat[neg_ind]),
+              100 * float(len(delta_fprs_cat[neg_ind])) / len(delta_fprs_cat))
+          print 'no change:\t(%.2f%%)' % \
+              (100 * float(len(delta_fprs_cat) - len(pos_ind) - len(neg_ind)) / len(delta_fprs_cat))
+
+          plt.subplot(3, 2, 2 * ci + 1)
+          plt.hist(delta_fprs_cat, bins = nbins)
+          plt.title(category + '$\Delta_p^{FPR}$')
+        else:
+          print 'None'
+
+        print '-----'
+
+        if delta_tprs_cat:
+          print 'delta tprs'
+          delta_tprs_cat = np.array(delta_tprs_cat)
+          pos_ind = np.where(delta_tprs_cat > 0)[0]
+          neg_ind = np.where(delta_tprs_cat < 0)[0]
+
+          print 'overall:\t%.4f +/- %.4f' % (np.mean(delta_tprs_cat),
+                                             np.std(delta_tprs_cat))
+          
+          if len(pos_ind) > 0:
+            print 'positive change:\t%.4f +/- %.4f\t(%.2f%%)' % (np.mean(delta_tprs_cat[pos_ind]),
+              np.std(delta_tprs_cat[pos_ind]),
+              100 * float(len(delta_tprs_cat[pos_ind])) / len(delta_tprs_cat))
+          if len(neg_ind) > 0:
+            print 'negative change:\t%.4f +/- %.4f\t(%.2f%%)' % (np.mean(delta_tprs_cat[neg_ind]),
+              np.std(delta_tprs_cat[neg_ind]),
+              100 * float(len(delta_tprs_cat[neg_ind])) / len(delta_tprs_cat))
+          print 'no change:\t(%.2f%%)' % \
+              (100 * float(len(delta_tprs_cat) - len(pos_ind) - len(neg_ind)) / len(delta_tprs_cat))
+
+          plt.subplot(3, 2, 2 * ci + 2)
+          plt.hist(delta_tprs_cat, bins = nbins)
+          plt.title(category + '$\Delta_p^{TPR}$')
+        else:
+          print 'None'
+
+      plt.gcf().subplots_adjust(bottom = 0.08, hspace = 0.40)
+
     # Plot a heatmap of positions in plane for each var_attr
     plot_roc_plane_scatter = False
     if plot_roc_plane_scatter:
-      plt.figure(figsize = (2.5,2.5))
-      for const_attr in const_attrs:
+      expname = 'threshold_3'
+      if not os.path.exists(os.path.join('fig/final/position', expname)):
+        os.mkdir(os.path.join('fig/final/position', expname))
+      if not os.path.exists(os.path.join('fig/final/position', expname, var_attr)):
+        os.mkdir(os.path.join('fig/final/position', expname, var_attr))
+      for (cai, const_attr) in enumerate(const_attrs):
         const_attr_values = const_attrs_allowed_values[const_attr]
-        for const_attr_value in const_attr_values:
+        plt.figure(figsize = (13, 3))
+        for (cavi, const_attr_value) in enumerate(const_attr_values):
           print const_attr, '=', const_attr_value
           udr_fprs = []
           udr_tprs = []
@@ -440,20 +546,36 @@ def roc(res_paths):
             udr_fprs.extend(np.array(udr[4]).flatten())
             udr_tprs.extend(np.array(udr[5]).flatten())
           """
-          heatmap, xedges, yedges = np.histogram2d(udr_fprs,
-                                                   udr_tprs, bins=30)
+          heatmap, xedges, yedges = np.histogram2d(udr_tprs,
+            udr_fprs, bins=40, range = [[0,1], [0,1]])
+          heatmap = np.log(heatmap + 0.1)
           extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
           plt.imshow(np.flipud(heatmap), extent = extent)
           """
+          plt.subplot(1, 4, cavi + 1)
           plt.scatter(udr_fprs, udr_tprs)
           plt.hold(True)
-          plt.axvline(np.mean(udr_fprs), lw = 1, ls = '--')
-          plt.axhline(np.mean(udr_tprs), lw = 1, ls = '--')
+          mean_udr_fprs = np.mean(udr_fprs)
+          mean_udr_tprs = np.mean(udr_tprs)
+          print '%.2f,%.2f' % (mean_udr_fprs, mean_udr_tprs)
+          plt.axvline(mean_udr_fprs, lw = 1, ls = '--', color = 'k')
+          plt.axhline(mean_udr_tprs, lw = 1, ls = '--', color = 'k')
+          plt.text(0.4, 0.15, '$FPR_{mean} = %.2f$' % mean_udr_fprs)
+          plt.text(0.4, 0.05, '$TPR_{mean} = %.2f$' % mean_udr_tprs)
           plt.xlim([-.1,1.1])
           plt.ylim([-.1,1.1])
+          if cavi == 0:
+            plt.ylabel('$TPR$')
+          plt.xlabel('$FPR$')
+          plt.title(const_attr + '=' + str(const_attr_value))
           plt.grid(True)
           plt.hold(False)
-          raw_input()
+          plt.draw()
+        plt.gcf().subplots_adjust(left = 0.08, bottom = 0.15, right = 0.94,
+                                  wspace = 0.30, hspace = 0.20)
+        plt.savefig(os.path.join('fig/final/position/', expname,
+                                 var_attr, const_attr + '.eps'))
+        #raw_input()
 
     # For current var_attr, compute rank of all other parameters by how far "up"
     # or "down" the ROC curve lies in the continuum of FPR/TPR tradeoffs.
@@ -516,18 +638,19 @@ def roc(res_paths):
     delta_rank_f = sorted(delta_rank, key = lambda x: x[1][0],
                           reverse = True)
     delta_rank_t = sorted(delta_rank, key = lambda x: x[1][1],
-                          reverse = False)
+                          reverse = True)
     # print '\n\ndelta_rank_f'
     # pp.pprint(delta_rank_f)
     # print '\n\ndelta_rank_t'
     # pp.pprint(delta_rank_t)
 
-    plot_roc_delta_ranked = True
+    plot_roc_delta_ranked = False
     if plot_roc_delta_ranked:
-      for delta_rank_sorted in [ delta_rank_t ]:
+      for delta_rank_sorted in [ delta_rank_f ]:
         print '\n\n'
+        # plt.figure(figsize = (10,10))
         plt.figure(figsize = (10,5))
-        plt.suptitle('Bottom $\Delta_p^{TPR}$ for ' + var_attr + \
+        plt.suptitle('Top $\Delta_p^{FPR}$ for ' + var_attr + \
                        '\nconstant params = ' + str(const_attrs))
         for dri, dr in enumerate(delta_rank_sorted):
           if dri >= 8:
@@ -544,7 +667,8 @@ def roc(res_paths):
           dr_std_tprs = [ np.std(dat) for dat in dr_all_tprs ]
 
           plt.subplot(2, 4, dri + 1)
-          plt.errorbar(dr_mean_fprs, dr_mean_tprs, dr_std_fprs, dr_std_tprs,
+          #plt.subplot(4, 4, dri + 1)
+          plt.errorbar(dr_mean_fprs, dr_mean_tprs, xerr=dr_std_fprs, yerr=dr_std_tprs,
                        linestyle = 'None', color = 'b')
           plt.hold(True)
           plt.scatter(dr_mean_fprs, dr_mean_tprs,
@@ -557,14 +681,15 @@ def roc(res_paths):
           plt.xlim([-0.1, 1.1])
           plt.ylim([-0.1, 1.1])
           plt.xlabel('$FPR$')
-          plt.ylabel('$TPR$')
+          if dri == 0:
+            plt.ylabel('$TPR$')
           plt.grid(True)
           plt.draw()
           #plt.setp(plt.gca(), xticklabels=[])
           #plt.setp(plt.gca(), yticklabels=[])
           plt.hold(False)
         plt.gcf().subplots_adjust(top = 0.80, wspace = 0.45, hspace = 0.45)
-        plt.savefig('fig/final/bottom_tpr/' + var_attr + '.eps')
+        plt.savefig('fig/final/top_fpr/' + var_attr + '.eps')
         plt.draw()
 
     plot_secondary_effect = False
@@ -646,8 +771,6 @@ def roc(res_paths):
           plt.setp(plt.gca(), xticklabels=[])
           plt.setp(plt.gca(), yticklabels=[])
           """
-          #plt.savefig('fig/final/delta_hist_sec/' + var_attr + '_' + \
-          #              const_attr + '_' + const_attr_value + '.eps')
         """
         miny = min([ extent[0] for extent in extents ])
         maxy = max([ extent[1] for extent in extents ])
@@ -680,10 +803,10 @@ def roc(res_paths):
           if ri == 0:
             plt.ylabel('$\Delta_p^{TPR}$', fontsize = 15)
           plt.xlabel('$\Delta_p^{FPR}$', fontsize = 15)
-          plt.draw()
         plt.gcf().subplots_adjust(bottom = 0.20, wspace = 0.35)
-        plt.savefig('fig/final/delta_hist_sec/' + var_attr + '/' + \
-                      const_attr + '.eps')
+        plt.draw()
+        #plt.savefig('fig/final/delta_hist_sec/' + var_attr + '/' + \
+        #              const_attr + '.eps')
         raw_input()
 
     # Plot deltas in fpr and tpr as 2d histogram.

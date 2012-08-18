@@ -146,6 +146,33 @@ Figures \ref{fig:deltas1} through \ref{fig:deltas6} shows this effect for each p
 
 % TODO: Figure
 
+%%% Simplified Analysis of Parameters.
+Gamma
+up everywhere
+* Bottom: up
+* Center: up
+* Top: up
+CmprWindow
+* Bottom
+* Center
+* Top
+Threshold
+* Bottom: down
+* Center: down
+* Top: down
+WSmooth
+* Bottom: none
+* Center: none
+* Top: none
+DetectionWindowHrs
+* Bottom:
+* Center:
+* Top:
+ReqConsecDetections
+* Bottom: down
+* Center: down
+* Top: down
+
 % TODO: consistent effect, vs contingent effect
 It is clear that varying some parameters has the same effect regardless of the
 remaining parameters, at least within the range of values explored. 
@@ -157,6 +184,15 @@ Increasing \vt{Gamma} always moves us up the curve.
 Increasing \vt{Threshold} always moves us down the curve.
 Increasing \vt{ReqConsecDetections} always moves us down the curve.
 
+For secondary effects, do only.
+\vt{CmprWindow}
+\vt{DetectionWindowHrs}
+\vt{WSmooth}
+
+Conclude that \vt{Wmooth} has no noticeable effect regardless of other params.
+Conclude that \vt{CmprWindow} has ...
+Conclude that \vt{DetectionWindowHrs} has ... 
+
 \clearpage
 Some variable parameters, however, do not appear to have a consistent effect
 across all combinations of constant parameters. To investigate how pairs of
@@ -166,71 +202,316 @@ of a chosen constant parameter, and all combinations of the remaining constant
 parameters. Figures \ref{fig:delta_sec1} through \ref{fig:delta_sec6} show these
 effects.
 
+
+
+\begin{comment}
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%% Secondary Effect Gamma
+\subsubsection{Secondary Effects for a Variable \vt{Gamma}}
+
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/cmpr_window}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/threshold}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/w_smooth}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/detection_window_hrs}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/gamma/cmpr_window}
 \end{center}
-\caption{\label{fig:delta_sec1} Secondary effects of constant parameters for variable parameter \vt{Gamma}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{Gamma}}
 \end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/threshold}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/gamma/threshold}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Threshold} for
+  variable parameter \vt{Gamma}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/w_smooth}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/gamma/w_smooth}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{WSmooth} for
+  variable parameter \vt{Gamma}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/detection_window_hrs}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/gamma/detection_window_hrs}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{DetectionWindowHrs} for variable
+  parameter \vt{Gamma}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+  \includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/gamma/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{Gamma}}
+\end{figure}
+
+\end{comment}
+
+\clearpage
+%%%%%%%%%%%%%%%%%%%%%% Secondary Effect CmprWindow
+\subsubsection{Secondary Effects for a Variable \vt{CmprWindow}}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/gamma}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/threshold}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/w_smooth}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/detection_window_hrs}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/cmpr_window/gamma}
 \end{center}
-\caption{\label{fig:delta_sec2} Secondary effects of constant parameters for variable parameter \vt{CmprWindow}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{CmprWindow}}
 \end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/threshold}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/cmpr_window/threshold}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Threshold} for
+  variable parameter \vt{CmprWindow}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/w_smooth}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/cmpr_window/w_smooth}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{WSmooth} for
+  variable parameter \vt{CmprWindow}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/detection_window_hrs}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/cmpr_window/detection_window_hrs}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{DetectionWindowHrs} for variable
+  parameter \vt{CmprWindow}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+  \includegraphics[width=6in]{../fig/final/delta_hist_sec/cmpr_window/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/cmpr_window/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{CmprWindow}}
+\end{figure}
+
+
+\begin{comment}
+\clearpage
+%%%%%%%%%%% Secondary Effect Threshold
+\subsubsection{Secondary Effects for a Variable \vt{Threshold}}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/gamma}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/cmpr_window}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/w_smooth}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/detection_window_hrs}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/threshold/gamma}
 \end{center}
-\caption{\label{fig:delta_sec3} Secondary effects of constant parameters for variable parameter \vt{Threshold}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{Threshold}}
 \end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/cmpr_window}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/threshold/cmpr_window}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{Threshold}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/w_smooth}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/threshold/w_smooth}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{WSmooth} for
+  variable parameter \vt{Threshold}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/detection_window_hrs}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/threshold/detection_window_hrs}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{DetectionWindowHrs} for variable
+  parameter \vt{Threshold}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+  \includegraphics[width=6in]{../fig/final/delta_hist_sec/threshold/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/threshold/req_consec_detections}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{ReqConsecDetections} for
+  variable parameter \vt{Threshold}}
+\end{figure}
+
+\end{comment}
+
+\clearpage
+%%%%%%%%%%% Secondary effects WSmooth
+\subsubsection{Secondary Effects for a Variable \vt{WSmooth}}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/gamma}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/cmpr_window}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/threshold}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/detection_window_hrs}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/w_smooth/gamma}
 \end{center}
-\caption{\label{fig:delta_sec4} Secondary effects of constant parameters for variable parameter \vt{WSmooth}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{WSmooth}}
 \end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/cmpr_window}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/w_smooth/cmpr_window}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{WSmooth}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/threshold}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/w_smooth/threshold}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Threshold} for
+  variable parameter \vt{WSmooth}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/detection_window_hrs}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/w_smooth/detection_window_hrs}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{DetectionWindowHrs} for
+  variable parameter \vt{WSmooth}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/w_smooth/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/w_smooth/req_consec_detections}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{ReqConsecDetections} for variable
+  parameter \vt{WSmooth}}
+\end{figure}
+
+
+\clearpage
+%%%%%%%%%%% Secondary effects DetectionWindowHrs
+\subsubsection{Secondary Effects for a Variable \vt{DetectionWindowHrs}}
 
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/gamma}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/cmpr_window}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/threshold}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/w_smooth}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/detection_window_hrs/gamma}
 \end{center}
-\caption{\label{fig:delta_sec5} Secondary effects of constant parameters for variable parameter \vt{DetectionWindowHrs}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{DetectionWindowHrs}}
 \end{figure}
 
 \begin{figure}[!h]
 \begin{center}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/cmpr_window}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/threshold}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/w_smooth}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/detection_window_hrs}
-\includegraphics[width=6in]{../fig/final/delta_hist_sec/gamma/req_consec_detections}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/cmpr_window}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/detection_window_hrs/cmpr_window}
 \end{center}
-\caption{\label{fig:delta_sec6} Secondary effects of constant parameters for variable parameter \vt{ReqConsecDetections}}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{DetectionWindowHrs}}
 \end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/threshold}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/detection_window_hrs/threshold}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Threshold} for
+  variable parameter \vt{DetectionWindowHrs}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/w_smooth}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/detection_window_hrs/w_smooth}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{WSmooth} for
+  variable parameter \vt{DetectionWindowHrs}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/detection_window_hrs/req_consec_detections}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/detection_window_hrs/req_consec_detections}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{ReqConsecDetections} for variable
+  parameter \vt{DetectionWindowHrs}}
+\end{figure}
+
+
+\begin{comment}
+
+\clearpage
+%%%%%%%%%%% ReqConsecDetections
+\subsubsection{Secondary Effects for a Variable \vt{ReqConsecDetections}}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/req_consec_detections/gamma}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/req_consec_detections/gamma}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Gamma} for
+  variable parameter \vt{ReqConsecDetections}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/req_consec_detections/cmpr_window}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/req_consec_detections/cmpr_window}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{CmprWindow} for
+  variable parameter \vt{ReqConsecDetections}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/req_consec_detections/threshold}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/req_consec_detections/threshold}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{Threshold} for
+  variable parameter \vt{ReqConsecDetections}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/req_consec_detections/w_smooth}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/req_consec_detections/w_smooth}
+\end{center}
+\caption{\label{fig:delta_sec6} Secondary effects of \vt{WSmooth} for
+  variable parameter \vt{ReqConsecDetections}}
+\end{figure}
+
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/delta_hist_sec/req_consec_detections/detection_window_hrs}
+\includegraphics[width=5.5in]{../fig/final/position/all_allowed/req_consec_detections/detection_window_hrs}
+\end{center}
+\caption{\label{fig:sec} Secondary effects of \vt{DetectionWindowHrs} for variable
+  parameter \vt{ReqConsecDetections}}
+\end{figure}
+
+\end{comment}
+
+Analysis: There's a lot of variation from a few params so it's hard to tell what the other params are doing. The direction stuff moves along the curve is also largely influenced by where is starts out along the curve.
 
 \clearpage
 % Top and bottom ROC curves
@@ -241,6 +522,10 @@ $\Delta_p^{FPR}$ show the values of the constant parameters for which the
 variable parameter has the largest positive effect on $FPR$. Similarly, the
 bottom-ranked ROC curves represent ROC curves for which the variable parameter
 has the lowest positive (possibly negative) effect on $FPR$.
+
+
+Analysis:
+For CmprWindow: can move up the curve as long as we start low
 
 \begin{figure}[!h]
 \begin{center}
@@ -366,5 +651,7 @@ has the lowest positive (possibly negative) effect on $FPR$.
 % that... really really good?
 
 \clearpage
+
+
 
 \section{Recommendations}
