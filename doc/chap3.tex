@@ -34,56 +34,67 @@ minimum over all such trajectories.
 
 \section{Implementation}
 
-Let $S$ be the infinite observed signal and $S_{cmpr}$ be the most recent
-\vt{CmprWindow} samples. Let $S'$ be a reference signal of length
-\vt{DetectionWindowHrs} * {\vt{SamplesPerHour}}
+As in Chapter \ref{ch:method}, let $\mb s$ be the most recent $N_{obs}$ samples of the
+infinite observed signal $\mb s_{\infty}$ and let $\mb r$ be a reference signal
+of length $N_{ref}$.
 
 \begin{algorithm}
-\caption{{\it Perform online binary classification on an observed signal $S$
+\caption{Perform online binary classification on an observed signal
     using sets of positive and negative reference signals $R_+$ and $R_-$.}
- \\\\ \vt{Detect}($S$, $R_+$, $R_-$, \vt{Gamma, Threshold, ReqConsecDetections,
-    CmprWindow})}
 \label{alg:Detect}
-\begin{algorithmic}
-\STATE \vt{Detected} $\leftarrow$ \vt{False}
-\REPEAT
-  \STATE $S_{cmpr}$ $\leftarrow$ \vt{RecentSamples}($S$, \vt{CmprWindow})
-  \STATE \vt{PosDists} $\leftarrow$ $[\:\:]$
-  \STATE \vt{NegDists} $\leftarrow$ $[\:\:]$
-  \FOR{$S_-$ {\bf in} $R_-$}
-    \STATE \vt{PosDists.Append}(\vt{DistToSignal}($S_{cmpr}$, $S_+$, \vt{CmprWindow}))
+\at{Detect}($\mb s_{\infty}$, $\mathcal{R}_+$, $\mathcal{R}_-$, $\gamma$, $\theta$,
+$D_{req}$):
+\begin{algorithmic}[1]
+\STATE \vt{ConsecutiveDetections} $\leftarrow$ 0
+\LOOP
+  \STATE $\mb s$ $\leftarrow$ \at{UpdateObservation}($\mb s_{\infty}$, $N_{obs}$)
+  \FOR{$\mb r$ {\bf in} $\mathcal{R}_+$}
+    \STATE \vt{PosDists}.\at{Append}(\at{DistToReference}($\mb s$, $\mb r$))
   \ENDFOR
-  \FOR{$S_-$ {\bf in} $R_-$}
-    \STATE \vt{NegDists.Append}(\vt{DistToSignal}($S_{cmpr}$, $S_-$, \vt{CmprWindow}))
+  \FOR{$\mb r$ {\bf in} $\mathcal{R}_-$}
+    \STATE \vt{NegDists}.\at{Append}(\at{DistToReference}($\mb s$, $\mb r$))
   \ENDFOR
-  \STATE \vt{ProbRatio} = \vt{ProbClass(PosDists)} / \vt{ProbClass(NegDists)}
-  \IF{\vt{ProbRatio} $>$ \vt{Threshold}}
-    \STATE $\vt{Detected} \leftarrow \vt{True}$
+  \STATE \vt{R} = \at{ProbClass}(\vt{PosDists}) / \at{ProbClass}(\vt{NegDists})
+  \IF{\vt{R} $> \theta$ }
+    \IF{\vt{ConsecutiveDetections} $>$ $D_{req}$}
+      \STATE \vt{DetectionTime} $\leftarrow$ \at{CurrentTime}()
+      \RETURN \vt{DetectionTime}
+    \ELSE
+      \STATE \vt{ConsecutiveDetections} $\leftarrow$ \vt{ConsecutiveDetections} + 1
+    \ENDIF
+  \ELSE
+    \STATE \vt{ConsecutiveDetections} $\leftarrow$ 0
   \ENDIF
-\UNTIL{\vt{Detected}}
+\ENDLOOP
 \end{algorithmic}
 \end{algorithm}
 
 \begin{algorithm}
-\caption{{\it Compute the minimum distance between $S_{cmpr}$ and pieces of $S'$
-    of the same size.}\\\\\vt{DistToSignal}($S_{cmpr}$, $S'$)}
-\label{alg:DistToSignal}
-\begin{algorithmic}
-  \STATE \vt{CmprWindow} $\leftarrow$ {\bf length}($S_{cmpr}$)
+\caption{Compute the minimum distance between $\mb s$ and all pieces of $\mb r$
+  of the same length as $\mb s$.}
+\label{alg:DistToReference}
+\at{DistToReference}($\mb s$, $\mb r$):
+\begin{algorithmic}[1]
+  \STATE $N_{obs}$ $\leftarrow$ \at{length}($\mb s$)
+  \STATE $N_{ref}$ $\leftarrow$ \at{length}($\mb r$)
   \STATE \vt{MinDist} = $\infty$
-  \FOR{$i=0$ \TO {\bf length}($S'$) - \vt{CmprWindow}}
-    \STATE $S'_{cmpr,i} \leftarrow S'[i:i+\vt{CmprWindow}]$
-    \STATE \vt{MinDist} = \vt{Min}(\vt{MinDist}, \vt{Dist}($S'_{cmpr,i}$, $S_{cmpr}$))
+  \FOR{$i=1$ \TO $N_{ref} - N_{obs} + 1$}
+    \STATE \vt{MinDist} = \at{Min}(\vt{MinDist}, \at{Dist}($\mb r_{i:i+N_{obs}-1}$, $\mb s$))
   \ENDFOR
   \RETURN \vt{MinDist}
 \end{algorithmic}
 \end{algorithm}
 
 \begin{algorithm}
-\caption{{\it Compute the distance between two signals $S$ and $S'$ of the same
-    length}\\\\\vt{Dist}($S$, $S'$)}
+\caption{Compute the distance between two signals $\mb s$ and $\mb t$ of the same
+    length}
 \label{alg:DistToSignal}
-\begin{algorithmic}
-\STATE
+\at{Dist}($\mb s$, $\mb t$):
+\begin{algorithmic}[1]
+\STATE \vt{D} $\leftarrow$ 0
+\FOR{$i=1$ to \at{length}($\mb s$)}
+  \STATE \vt{D} $\leftarrow$ \vt{D} + $(s_i - t_i)^2$
+\ENDFOR
+\RETURN \vt{D}
 \end{algorithmic}
 \end{algorithm}

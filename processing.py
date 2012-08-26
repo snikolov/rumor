@@ -374,7 +374,8 @@ def ts_eval_for_param(ts_info_pos, ts_info_neg, threshold, trend_times = None):
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
-                  detection_results = None):
+                  detection_results = None, pos_filter = None,
+                  neg_filter = None, first_only = True):
   # Get raw and normalized rates
   # Compare trend times, detection times, rates, normalized rates, scores
   
@@ -385,38 +386,80 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
 
   detections = detection_results['detection']
   scores = detection_results['scores']
+  signals = detection_results['signals']
+
+  plt.ion()
+  fig = plt.figure(figsize = (10,4))
 
   tests = { 'pos': 'b', 'neg': 'r' }
-  for type in tests:
+  for test_type in tests:
     # Plot detection times vs actual trend times.
-    for topic in detections[type]:
-      topic_detection_scores = detections[type][topic]['scores']
-      topic_detection_times = detections[type][topic]['times']
-      if len(topic_detection_times) > 0:
-        markerline, stemlines, baseline = \
-            plt.stem(np.array(topic_detection_times),
-                     1.2 * np.ones((len(topic_detection_times), 1)),
-                     hold = 'on')
-        plt.setp(markerline, 'markerfacecolor', tests[type])
-        plt.setp(markerline, 'markeredgecolor', tests[type])
-        plt.setp(stemlines, 'color', tests[type])
+    for topic in detections[test_type]:
+      if test_type is 'pos' and pos_filter is not None and topic not in pos_filter:
+        continue
+      if test_type is 'neg' and neg_filter is not None and topic not in neg_filter:
+        continue
+      topic_detection_scores = detections[test_type][topic]['scores']
+      topic_detection_times = detections[test_type][topic]['times']
 
-      plt.plot(scores[type][topic].times, scores[type][topic].values,
-               hold = 'on', color = 'g')
-      plt.title(topic)
+      score_values = scores[test_type][topic].values
 
+      min_trend_time = 0
       if trend_times is not None:
-        if type is 'pos':
-          topic_trending_times = trend_times[topic]
-          markerline, stemlines, baseline = \
-              plt.stem(np.array(topic_trending_times),
-                       np.ones((len(topic_trending_times), 1)),
-                       hold = 'on')
-          plt.setp(markerline, 'markerfacecolor', 'k')
-          plt.setp(markerline, 'markeredgecolor', 'k')
-          plt.setp(stemlines, 'color', 'k')
+        if test_type is 'pos':
+          if topic in trend_times:
+            topic_trending_times = trend_times[topic]
+            times_to_plot = np.array(sorted(topic_trending_times)) / (1000 * 3600.0)
+            if first_only:
+              min_trend_time = times_to_plot[0]
+              times_to_plot = [times_to_plot[0]]
+            markerline, stemlines, baseline = \
+                plt.stem(times_to_plot - min_trend_time,
+                         0.5 * np.log(np.max(score_values)) * np.ones((len(times_to_plot), 1)))
+            plt.hold(True)
+            plt.setp(markerline, 'markerfacecolor', 'w', 'label', '$t_{onset}$')
+            plt.setp(markerline, 'markeredgecolor', 'k')
+            plt.setp(stemlines, 'color', 'k', 'linestyle', '--')
+          else:
+            print topic, ' not found in trending times dict.'
 
-      plt.show()
+      if len(topic_detection_times) > 0:
+        times_to_plot = np.array(sorted(topic_detection_times)) / (1000 * 3600.0)
+        if first_only:
+          times_to_plot = [times_to_plot[0]]
+        markerline, stemlines, baseline = \
+            plt.stem(times_to_plot - min_trend_time,
+                     0.5 * np.log(np.max(score_values)) * np.ones((len(times_to_plot), 1)))
+        plt.hold(True)
+
+        plt.setp(markerline, 'markerfacecolor', tests[test_type], 'label', '$t_{detect}$')
+        plt.setp(markerline, 'markeredgecolor', tests[test_type])
+        plt.setp(stemlines, 'color', tests[test_type])
+
+      # Scores, signal, and threshold
+      plt.axhline(0, color = 'k', ls = ':', label = r'$\theta$', lw = 0.5)
+      plt.plot(np.array(scores[test_type][topic].times) / (3600 * 1000.0) - min_trend_time,
+               np.log(score_values), color = 'g', lw = 1, label = '$R(\mathbf{s})$')
+      plt.title('Topic: ' + topic)
+      plt.hold(True)
+      signal_values = np.array(signals[test_type][topic]['values'])
+      signal_values = signal_values - np.min(signal_values) + 0.1
+      signal_values = signal_values * (np.log(np.max(score_values)) / np.max(signal_values)) / 2.0
+      plt.plot(np.array(signals[test_type][topic]['times']) / (1000 * 3600.0) - min_trend_time,
+               signal_values, color = 'm', linestyle = '--', lw = 1, label = '$\mathbf{s}_{\infty}$')
+      fig.autofmt_xdate()
+      plt.xlabel('time (hours)')
+      plt.ylim(ymin = -0.5)
+
+      time_range = (scores[test_type][topic].tmax - scores[test_type][topic].tmin) / (1000.0 * 3600)
+      plt.xlim([scores[test_type][topic].tmin / (1000.0 * 3600) - time_range * 0.4 - min_trend_time,
+                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.4 - min_trend_time])
+
+      plt.legend(scatterpoints = 1)
+      plt.draw()
+      raw_input()
+      plt.hold(False)
+      
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
@@ -538,7 +581,8 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
                     cmpr_window = 80, cmpr_step = None, w_smooth = 80, gamma = 1,
                     p_sample = 0.5, detection_step = None, min_dist_step = None,
                     detection_window_hrs = 5, req_consec_detections = 1,
-                    normalize = True):
+                    normalize = True, pnt = False, stop_when_detected = True,
+                    plot = False):
 
   #np.random.seed(31953)
   #np.random.seed(334513)
@@ -564,7 +608,6 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
       ceil(
         (int(detection_window_hrs * 3600 * 1000 / float(tstep)) - cmpr_window) / 15.0))
 
-  pnt = False
   if pnt:
     print 'Sampling data...'
   ts_info_pos = ts_sample_topics(ts_info_pos, p_sample)
@@ -602,7 +645,6 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   N_bundle = len(bundle_pos[pos_topics_bundle[0]].values)
 
   plt.ion()    
-  plot = False
 
   if plot:
     plt.close('all')
@@ -623,18 +665,34 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
   earlies = []
   lates = []
 
-  stop_when_detected = True
   num_consec_detections = 0
+
+  detection_results = {}
+  detection_results['detection'] = {}
+  detection_results['scores'] = {}
+  detection_results['signals'] = {}
 
   if pnt:
     print 'Doing detection...'
   for test_type in ts_info_tests:
+    detection_results['detection'][test_type] = {}
+    detection_results['scores'][test_type] = {}
+    detection_results['signals'][test_type] = {}
+
     if pnt:
       print '=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~'
       print '# Test type:', test_type
       print '=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~'
     ts_info_test = ts_info_tests[test_type]
     for (test_index, test_topic) in enumerate(ts_info_test):
+      detection_results['detection'][test_type][test_topic] = {}
+      detection_results['detection'][test_type][test_topic]['scores'] = []
+      detection_results['detection'][test_type][test_topic]['times'] = []
+      detection_results['signals'][test_type][test_topic] = {}
+      detection_results['scores'][test_type][test_topic] = []
+      score_values = []
+      score_times = []
+
       if pnt:
         print '\nTest topic', test_topic, (test_index + 1), '/', \
             len(ts_info_test)
@@ -656,11 +714,13 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           detection_start + 2 * detection_window_time)
 
       ts = tsobj_d.values
+
       # ts = (ts + 0.01) / (ts_norm_func(ts) + 0.01)
       ts_orig_len = len(ts)
       ts = np.convolve(ts, np.ones(w_smooth), 'full')
       ts = [ log(v + 0.01) for v in ts[0:ts_orig_len] ]
-      
+      detection_results['signals'][test_type][test_topic]['times'] = tsobj_d.times
+      detection_results['signals'][test_type][test_topic]['values'] = ts
       """
       plt.plot(ts)
       plt.title('Smoothed and normalized timeseries for ' + test_topic)
@@ -730,6 +790,12 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           plt.title('Histograms of distances')
           plt.hold(False)           
 
+        
+        curr_time = tsobj_d.tmin + (i + cmpr_window - 1) * tsobj_d.tstep
+        onset_time = tsobj_d.tmin + int(len(tsobj_d.values) / 2.0) * tsobj_d.tstep
+        score_values.append(score)
+        score_times.append(curr_time)
+          
         if score < threshold:
           if pnt:
             print i, '/', (len(ts) - cmpr_window), score
@@ -746,8 +812,12 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
             # explicit time, the correctness of these times depends on whether i
             # is iterating through the whole detection window or some
             # post-convolution slice of it.)
-            detection_time = i * tsobj_d.tstep
-            onset_time = tsobj_d.tstep * len(tsobj_d.values) / 2.0
+            detection_time = curr_time # i * tsobj_d.tstep
+            #onset_time = tsobj_d.tstep * len(tsobj_d.values) / 2.0
+
+            detection_results['detection'][test_type][test_topic]['scores'].append(score)
+            detection_results['detection'][test_type][test_topic]['times'].append(detection_time)
+
             # Record late or early detection. Note that this only makes sense for
             # positive examples andwhen stop_when_detected is True.
             if test_type is 'pos':
@@ -764,6 +834,8 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
           plt.hold(False)
 
       # If we go through the whole test signal and don't detect anything:
+      detection_results['scores'][test_type][test_topic] = Timeseries(score_times, score_values)
+
       if detected:
         if test_type is 'pos':
           tp += 1
@@ -815,7 +887,8 @@ def ts_shift_detect(ts_info_pos, ts_info_neg, threshold = 1, test_frac = 0.25,
            'fpr': (fp / float(tn + fp)), 
            'tpr': (tp / float(fn + tp)),
            'earlies': earlies,
-           'lates': lates }
+           'lates': lates,
+           'detection_results': detection_results}
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_dist_func(a, b, cmpr_step = 1):

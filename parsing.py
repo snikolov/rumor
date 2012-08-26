@@ -388,7 +388,7 @@ def parse_trend_times(path):
     line = f.readline()
     while line:
       fields = line_to_fields(line)
-      if len(fields) is not 8:
+      if len(fields) < 8:
         line = f.readline()
         print 'Bad line', line
         continue
