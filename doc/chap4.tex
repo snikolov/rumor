@@ -125,17 +125,17 @@ Tweets into time bins of a certain length. we used time bins of length two
 minutes. 
 
 \subsubsection{Normalizing to Remove Baseline}
-A first glance at the data reveals that many non-trending
-topics have a relatively high rate and volume of Tweets, and many trending
-topics have a relatively low rate and volume of Tweets. One important difference
-is that many non-trending topics have a high {\em baseline rate} of activity
-while most trending topics are preceded by little, if any, activity prior to
-gaining sudden popularity. For example, a non-trending topic such as 'city' is
-likely to have a consistent baseline of activity becuase it is a common word. To
-emphasize the parts of the rate signal above the baseline and de-emphasize the
-parts below the baseline, we divide the rate by the mean rate over the entire
-window. We then take the resulting quotient to a power $\beta$, which controls
-how much we reward and penalize rates above and below the mean rate. Figure
+A first glance at the data reveals that many non-trending topics have a
+relatively high rate and volume of Tweets, and many trending topics have a
+relatively low rate and volume of Tweets. One important difference is that many
+non-trending topics have a high {\em baseline rate} of activity while most
+trending topics are preceded by little, if any, activity prior to gaining sudden
+popularity. For example, a non-trending topic such as 'city' is likely to have a
+consistent baseline of activity becuase it is a common word. To emphasize the
+parts of the rate signal above the baseline and de-emphasize the parts below the
+baseline, we divide the rate by the mean rate over the entire window. We then
+take the resulting quotient to a power $\beta$, which controls how much we
+reward and penalize rates above and below the mean rate. Figure
 \ref{fig:spikes_baseline} shows signals without any baseline normalization and
 their baseline-normalized versions.
 
@@ -242,12 +242,18 @@ usually looks roughly the same over the entire sample window. Therefore, it is
 reasonable to perform detection only on a piece of the signal as an
 approximation to the true detection performance.
 
-We perform detection over a window of $2M$ samples --- twice the length of a
-reference signal. For test topics that have trended, we choose the window
-centered at the true trend onset. For topics that did not trend, we randomly
-choose a window of the desired size. Note that, although this seems to require
-{\em a priori} knowledge of whether the test topic ever trended or not, this is
-only a consequence of the shortcut we take to not do detection over the entire
-sample window.
+We perform detection over a window of $2N_{obs}$ samples --- twice the length of a
+reference signal. For convenience and future use, we define this in terms of hours.
+
+\begin{defn}
+Let $h_{ref}$ be the number of hours corresponding to $N_{ref}$ samples. At 2 minutes per sample, $h_{ref}$ is given by $N_{ref} / 30$.
+\end{defn}
+
+For test topics that have trended, we do detection on the window spanning
+$2h_{ref}$ hours centered at the true trend onset. For topics that did not
+trend, we randomly choose a window of the desired size. Note that, although this
+seems to require {\em a priori} knowledge of whether the test topic ever trended
+or not, this is only a consequence of the shortcut we take to not do detection
+over the entire sample window.
 
 \subsection{Parameter Exploration}

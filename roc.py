@@ -17,15 +17,28 @@ rc('text', usetex = False)
 np.seterr(all = 'raise')
 pp = pprint.PrettyPrinter(indent = 2)
 
-def early(res_path):
-  f = open(res_path, 'r')
-  results = pickle.load(f)
-  f.close()
+fpr_partition_threshold = 0.25
+tpr_partition_threshold = 0.75
 
-  paramsets = results[0]
-  statsets = results[1]
+def fix_detection_times(paramsets, statsets):
+  for si in xrange(len(statsets)):
+    cmpr_window = paramsets[si].cmpr_window
+    offset = cmpr_window * 100000
 
-  pass
+    for stats in statsets[si]:
+      if not stats:
+        continue
+      earlies = stats['earlies']
+      lates = stats['lates']
+      earlies_offset = [ early - offset for early in earlies ]
+      lates_offset = [ late + offset for late in lates ]
+      correct_earlies = [ early for early in earlies_offset
+                          if early > 0 ]
+      correct_lates = lates_offset
+      correct_lates.extend([ -early for early in earlies_offset 
+                             if early <= 0 ])
+      stats['earlies'] = correct_earlies
+      stats['lates'] = correct_lates
 
 def point_to_category(fpr, tpr, fpr_partition_threshold = 0.5,
                       tpr_partition_threshold = 0.5):
@@ -49,6 +62,7 @@ def roc(res_paths):
     for statset in results[1]:
       statsets.append(statset)
 
+  fix_detection_times(paramsets, statsets)
   """
   # Sort just to make sure (TODO: untested) TODO: This will come in handy when
   # getting data from multiple files.
@@ -118,6 +132,23 @@ def roc(res_paths):
     rates_partitioned['top'] = {}
     rates_partitioned['center'] = {}
     rates_partitioned['bottom'] = {}
+    # Record the earliness relative to true onset
+    earliness = {}
+    earliness['top'] = {}
+    earliness['top']['fprs'] = []
+    earliness['top']['tprs'] = []
+    earliness['top']['earlies'] = []
+    earliness['top']['lates'] = []
+    earliness['center'] = {}
+    earliness['center']['fprs'] = []
+    earliness['center']['tprs'] = []
+    earliness['center']['earlies'] = []
+    earliness['center']['lates'] = []
+    earliness['bottom'] = {}
+    earliness['bottom']['fprs'] = []
+    earliness['bottom']['tprs'] = []
+    earliness['bottom']['earlies'] = []
+    earliness['bottom']['lates'] = []
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
@@ -141,6 +172,8 @@ def roc(res_paths):
     std_tprs = []
     all_fprs = []
     all_tprs = []
+    all_earlies = []
+    all_lates = []
     
     for psi in xrange(len(paramsets_sorted)):
       # Take the difference between the numerical values.
@@ -239,13 +272,16 @@ def roc(res_paths):
             # bottom and record the corersponding delta fprs and tprs.
             category = None
             if fprs_combo and tprs_combo:
-              category = point_to_category(fprs_combo[0], tprs_combo[0])
+              category = point_to_category(fprs_combo[0], tprs_combo[0],
+                fpr_partition_threshold = fpr_partition_threshold,
+                tpr_partition_threshold = tpr_partition_threshold)
               deltas_partitioned[category][prev_params] = \
                   (new_delta_fprs, new_delta_tprs)
 
             for pidx in xrange(len(fprs_combo)):
               category = point_to_category(fprs_combo[pidx],
-                                           tprs_combo[pidx])
+                tprs_combo[pidx], fpr_partition_threshold = fpr_partition_threshold,
+                tpr_partition_threshold = tpr_partition_threshold)
               # This should really be done at the individual point level, not at
               # the ROC level...
               actual_params_dict = prev_params._asdict()
@@ -279,6 +315,29 @@ def roc(res_paths):
                                        delta_fprs_prev_params[:],
                                        delta_tprs_prev_params[:])
             
+          # Partition ROC points into top, bottom, center. For each one, record
+          # the FPR,TPR coordinates and the earlies and lates.
+          if all_fprs and all_tprs and all_earlies and all_lates:
+            for point_trials_idx in xrange(len(all_fprs)):
+              fprs_point_trials = all_fprs[point_trials_idx]
+              tprs_point_trials = all_tprs[point_trials_idx]
+              earlies_point_trials = all_earlies[point_trials_idx]
+              lates_point_trials = all_lates[point_trials_idx]
+              for trial_idx in xrange(len(fprs_point_trials)):
+                fpr_trial = fprs_point_trials[trial_idx]
+                tpr_trial = tprs_point_trials[trial_idx]
+                earlies_trial = earlies_point_trials[trial_idx]
+                lates_trial = lates_point_trials[trial_idx]
+
+                category = point_to_category(fpr_trial, tpr_trial,
+                  fpr_partition_threshold = fpr_partition_threshold,
+                  tpr_partition_threshold = tpr_partition_threshold)
+
+                earliness[category]['fprs'].append(fpr_trial)
+                earliness[category]['tprs'].append(tpr_trial)
+                earliness[category]['earlies'].append(earlies_trial)
+                earliness[category]['lates'].append(lates_trial)
+
           # Record measures of 'position' for this ROC curve to use for ranking
           # ROC curves by how far 'up' or 'down' they are. %TODO: awkward
           # phrasing.
@@ -420,6 +479,8 @@ def roc(res_paths):
           std_tprs = []
           all_fprs = []
           all_tprs = []
+          all_earlies = []
+          all_lates = []
           var_attr_count = 0
           var_attr_values = []
     
@@ -433,6 +494,17 @@ def roc(res_paths):
         tprs = [ stats['tpr']
                  for stats in statsets_sorted[psi]
                  if stats ]
+        
+        earlies_point_trials = []
+        lates_point_trials = []
+        for stats in statsets_sorted[psi]:
+          if not stats:
+            continue
+          earlies_trial = stats['earlies']
+          lates_trial = stats['lates']
+          earlies_point_trials.append(earlies_trial)
+          lates_point_trials.append(lates_trial)
+
         if pnt:
           print fprs, tprs
         if fprs and tprs:
@@ -455,10 +527,97 @@ def roc(res_paths):
             all_fprs.append(fprs)
             all_tprs.append(tprs)
 
+            # Record earlies and lates
+            all_earlies.append(earlies_point_trials)
+            all_lates.append(lates_point_trials)
+
       var_attr_count += 1
 
     print var_attr  
-    plot_rates_partitioned = True
+
+    plot_earliness = False
+    if plot_earliness:
+      plt.figure(figsize = (7,14))
+      plt.suptitle('Early detection vs. position on ROC curve', size = 15)
+      plt.subplot(211)
+      for (ci, category) in enumerate(earliness):
+        ecatd = earliness[category]
+        plt.scatter(ecatd['fprs'], ecatd['tprs'], s = 5, c = (0.75,0.75,0.75),
+                    edgecolors = 'none')
+        plt.hold(True)
+      for (ci, category) in enumerate(earliness):
+        ecatd = earliness[category]
+        mfprs = np.mean(ecatd['fprs'])
+        sfprs = np.std(ecatd['fprs'])
+        mtprs = np.mean(ecatd['tprs'])
+        stprs = np.std(ecatd['tprs'])
+        plt.errorbar(mfprs, mtprs, xerr = sfprs, yerr = stprs,
+                     linestyle = 'None', color = 'k', linewidth = 1.5)
+        plt.hold(True)
+        plt.scatter(mfprs, mtprs, s = 100, c = 'k')
+        plt.text(mfprs + 0.05, mtprs - 0.05, category, size = 15)
+        plt.axvline(0, linestyle = ':', color = 'k', linewidth = 1)
+        plt.axvline(1, linestyle = ':', color = 'k', linewidth = 1)
+        plt.axhline(0, linestyle = ':', color = 'k', linewidth = 1)
+        plt.axhline(1, linestyle = ':', color = 'k', linewidth = 1)
+        plt.axvline(fpr_partition_threshold, linestyle = ':', color = 'k')
+        plt.axhline(tpr_partition_threshold, linestyle = ':', color = 'k')
+
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        
+        plt.xlabel('$FPR$')
+        plt.ylabel('$TPR$')
+
+      nbins = 10
+      for (ci, category) in enumerate(earliness):
+        ecatd = earliness[category]
+        ecat = []
+        lcat = []
+        for e in ecatd['earlies']:
+          ecat.extend([ -ei / 3600000.0 for ei in e ])
+        for l in ecatd['lates']:
+          lcat.extend([ li / 3600000.0 for li in l])
+
+        plt.subplot(6, 1, ci + 4)
+        n, bins, hpatches = plt.hist(ecat, bins = nbins,
+                                     histtype = 'stepfilled', color = 'k',
+                                     align = 'mid', label = 'early')
+        plt.setp(hpatches, 'facecolor', 'w')
+        nmax = max(n)
+        plt.hold(True)
+        n, bins, hpatches = plt.hist(lcat, bins = nbins,
+                                     histtype = 'stepfilled', color = 'k',
+                                     align = 'mid', label = 'late')
+        plt.setp(hpatches, 'facecolor', 'k')
+        nmax = max(max(n), nmax)
+        plt.ylim([0, 1.2 * nmax])
+
+        plate = len(lcat) / float(len(lcat) + len(ecat))
+        plt.text(-9.75, nmax, '$P(early) = %.2f$' % (1 - plate),
+                  size = 10)
+        plt.text(-9.75, 0.8 * nmax, 
+                  '$P(late) = %.2f$' % plate, size = 10)
+        plt.text(-9.75, 0.6 * nmax,
+                  r'$\langle early \rangle = %.2f \; hrs.$' % (-np.mean(ecat)),
+                  size = 10)
+        plt.text(-9.75, 0.4 * nmax,
+                  r'$\langle late \rangle = %.2f \; hrs.$' % (np.mean(lcat)),
+                  size = 10)
+
+        plt.title(category)
+        if ci == 2:
+          plt.xlabel('hours late')
+        plt.ylabel('count')
+        
+        if ci == 0:
+          plt.legend(loc = 1)
+
+      plt.gcf().subplots_adjust(top = 0.96, bottom = 0.05, hspace = 0.30)
+      #plt.savefig('fig/final/early_vs_roc.eps')
+      break
+
+    plot_rates_partitioned = False
     if plot_rates_partitioned:
       for category in rates_partitioned:
         print category
@@ -475,8 +634,8 @@ def roc(res_paths):
         pp.pprint(cat_mean_attr_values)
       break
 
-    # Partition delta ranked results into 
-    plot_deltas_partitioned = False
+    # Partition delta ranked results into top, bottom, center.
+    plot_deltas_partitioned = True
     if plot_deltas_partitioned:
       plt.figure(figsize = (6,9))
       plt.suptitle(var_attr)

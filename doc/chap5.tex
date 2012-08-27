@@ -41,6 +41,14 @@ of the set of all ROC curves.
 \end{figure}
 \end{comment}
 
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=8in]{../fig/final/early_vs_roc}
+\end{center}
+\caption{\label{fig:early_vs_roc}}
+\end{figure}
+
+\clearpage
 \section{Examples} %TODO: Call this something better
 
 \begin{figure}[!h]
@@ -134,5 +142,20 @@ changes to the variable parameter.
 %TODO: Table for deltas. Try showing also deltas for detection time.
 
 %TODO: What parameters contribute to being in the top, bottom. How to show detection time?
+\begin{table}
+\begin{center}
+\begin{tabular}{|l|llllll|}
+\hline
+& $\langle N_{obs} \rangle$ & $\langle h_{ref} \rangle$ &$\langle \gamma
+  \rangle$ & $\langle D_{req} \rangle$ & $\langle \theta \rangle$ & $\langle
+  N_{smooth} \rangle$ \\\hline
+top & 76.93 & 6.86 & 4.38 & 2.90 & 0.81 & 88.66\\
+center & 77.92 & 6.09 & 3.75 & 2.88 & 1.79 & 88.61\\
+bottom & 68.76 & 6.83 & 1.81 & 3.70 & 2.69 & 88.10\\
+\hline
+\end{tabular}
+\end{center}
+\caption{\label{tbl:roc_pos}}
+\end{table}
 
 \section{Recommendations}
