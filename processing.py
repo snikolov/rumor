@@ -389,7 +389,7 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
   signals = detection_results['signals']
 
   plt.ion()
-  fig = plt.figure(figsize = (10,4))
+  plt.close('all')
 
   tests = { 'pos': 'b', 'neg': 'r' }
   for test_type in tests:
@@ -399,10 +399,12 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
         continue
       if test_type is 'neg' and neg_filter is not None and topic not in neg_filter:
         continue
+
       topic_detection_scores = detections[test_type][topic]['scores']
       topic_detection_times = detections[test_type][topic]['times']
-
       score_values = scores[test_type][topic].values
+
+      fig = plt.figure(figsize = (10,4))
 
       min_trend_time = 0
       if trend_times is not None:
@@ -412,54 +414,70 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
             times_to_plot = np.array(sorted(topic_trending_times)) / (1000 * 3600.0)
             if first_only:
               min_trend_time = times_to_plot[0]
-              times_to_plot = [times_to_plot[0]]
+              times_to_plot = np.array([times_to_plot[0]])
+            plt.axvline(times_to_plot[0] - min_trend_time, color = 'k', lw = 0.5)
+
             markerline, stemlines, baseline = \
                 plt.stem(times_to_plot - min_trend_time,
-                         0.5 * np.log(np.max(score_values)) * np.ones((len(times_to_plot), 1)))
+                         np.ones((len(times_to_plot), 1)))
             plt.hold(True)
             plt.setp(markerline, 'markerfacecolor', 'w', 'label', '$t_{onset}$')
             plt.setp(markerline, 'markeredgecolor', 'k')
             plt.setp(stemlines, 'color', 'k', 'linestyle', '--')
+
           else:
             print topic, ' not found in trending times dict.'
 
       if len(topic_detection_times) > 0:
         times_to_plot = np.array(sorted(topic_detection_times)) / (1000 * 3600.0)
         if first_only:
-          times_to_plot = [times_to_plot[0]]
+          times_to_plot = np.array([times_to_plot[0]])
+        plt.axvline(times_to_plot[0] - min_trend_time, color = 'k', lw = 0.5)
         markerline, stemlines, baseline = \
             plt.stem(times_to_plot - min_trend_time,
-                     0.5 * np.log(np.max(score_values)) * np.ones((len(times_to_plot), 1)))
+                     np.ones((len(times_to_plot), 1)))
         plt.hold(True)
 
         plt.setp(markerline, 'markerfacecolor', tests[test_type], 'label', '$t_{detect}$')
-        plt.setp(markerline, 'markeredgecolor', tests[test_type])
+        plt.setp(markerline, 'markeredgecolor', 'k')
         plt.setp(stemlines, 'color', tests[test_type])
 
       # Scores, signal, and threshold
-      plt.axhline(0, color = 'k', ls = ':', label = r'$\theta$', lw = 0.5)
-      plt.plot(np.array(scores[test_type][topic].times) / (3600 * 1000.0) - min_trend_time,
-               np.log(score_values), color = 'g', lw = 1, label = '$R(\mathbf{s})$')
+
+      plt.semilogy(np.array(scores[test_type][topic].times) / (3600 * 1000.0) - min_trend_time,
+               score_values, color = 'k', lw = 1, label = '$R(\mathbf{s})$')
       plt.title('Topic: ' + topic)
       plt.hold(True)
-      signal_values = np.array(signals[test_type][topic]['values'])
-      signal_values = signal_values - np.min(signal_values) + 0.1
-      signal_values = signal_values * (np.log(np.max(score_values)) / np.max(signal_values)) / 2.0
-      plt.plot(np.array(signals[test_type][topic]['times']) / (1000 * 3600.0) - min_trend_time,
-               signal_values, color = 'm', linestyle = '--', lw = 1, label = '$\mathbf{s}_{\infty}$')
+
+      plt.axhline(1, color = 'k', ls = ':', label = r'$\theta$', lw = 0.5)
+   
       fig.autofmt_xdate()
+      #plt.xlabel('time after true onset (hours)')
       plt.xlabel('time (hours)')
-      plt.ylim(ymin = -0.5)
+      plt.ylabel('$R(\mathbf{s})$')
+      plt.ylim(ymin = 0.1)
 
       time_range = (scores[test_type][topic].tmax - scores[test_type][topic].tmin) / (1000.0 * 3600)
       plt.xlim([scores[test_type][topic].tmin / (1000.0 * 3600) - time_range * 0.4 - min_trend_time,
-                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.4 - min_trend_time])
+                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.3 - min_trend_time])
 
-      plt.legend(scatterpoints = 1)
+      plt.legend(scatterpoints = 1, loc = 2, frameon = True)
+      plt.twinx()
+
+      signal_values = np.array(signals[test_type][topic]['values'])
+      #signal_values = signal_values - np.min(signal_values) + 0.1
+      #signal_values = signal_values * (np.log(np.max(score_values)) / np.max(signal_values)) / 2.0
+      plt.plot(np.array(signals[test_type][topic]['times']) / (1000 * 3600.0) - min_trend_time,
+               signal_values, color = 'k', linestyle = '--', lw = 1, label = '$\mathbf{s}_{\infty}$')   
+      plt.ylabel('$\mathbf{s}_{\infty}$')
+      plt.xlim([scores[test_type][topic].tmin / (1000.0 * 3600) - time_range * 0.4 - min_trend_time,
+                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.3 - min_trend_time])
+
+
+      plt.legend(loc = 1, frameon = True)
+
       plt.draw()
-      raw_input()
-      plt.hold(False)
-      
+      raw_input()      
   
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
@@ -560,6 +578,7 @@ def ts_bundle(ts_info, detection_window_time, w_smooth = 25):
                            mode = 'full')
     # TODO: some methods depend on this being the raw signal, not the log!
     smoothed = [ log(v + 0.01) for v in smoothed[0:len(tsw.values)] ]
+    #smoothed = [ (v + 0.01) for v in smoothed[0:len(tsw.values)] ]
     bundle[topic] = Timeseries(tsw.times, smoothed)
   return bundle
 
@@ -1161,20 +1180,27 @@ def ts_sample_topics(ts_info_orig, p_sample):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def viz_timeseries(ts_infos, normalize = True):
+  np.random.seed(2243626)
+
   plt.ion()
   plt.close('all')
-  colors = [(0,0,1), (1,0,0)]
+  #colors = [(0,0,1), (1,0,0)]
+  colors = ['k', 'k']
+  linestyles = ['-', '-']
+  linewidths = [1, 1.5]
+  labels = ['$\mathcal{R}_+$', '$\mathcal{R}_-$']
+
   rand_colors = False
   detection_window_time = 2 * 3600 * 1000
   #ts_norm_func = ts_mean_median_norm_func(1, 0)
   ts_norm_func = ts_pnorm_func(p = 1)
 
   bundles = {}
-  w_smooth = 100
+  w_smooth = 50
   fig = plt.figure()
   for (i, ts_info) in enumerate(ts_infos):
     # Sample
-    ts_info = ts_sample_topics(ts_info, 0.1)
+    ts_info = ts_sample_topics(ts_info, 0.025)
     
     """
     color = colors[i]
@@ -1202,20 +1228,27 @@ def viz_timeseries(ts_infos, normalize = True):
     bundles[i] = bundle
     # Plot.
     color = colors[i]
-    for t in bundle:
+    for (ti, t) in enumerate(bundle):
       if rand_colors:
         color = (np.random.rand(), np.random.rand(), np.random.rand())
-      plt.plot(np.array(bundle[t].times) - bundle[t].tmin,
-                   bundle[t].values, hold = 'on', linewidth = 1,
-                   color = color)
+      label = None
+      if ti == 0:
+        label = labels[i]
+      plt.plot((np.array(bundle[t].times) - bundle[t].tmin) / (3600 * 1000.0),
+                   bundle[t].values, hold = 'on', linewidth = linewidths[i],
+                   color = color, linestyle = linestyles[i], label = label)
       """
       plt.draw()
       plt.title(t)
       sleep(1)
       """
     plt.draw()
+  plt.title('Reference Signals (Transformations: Spikes, Baseline, Log)')
+  plt.xlabel('time (hours)')
+  plt.ylabel('signal')
+  #xplt.legend(loc = 2)
 
-  plot_scatter = True
+  plot_scatter = False
   if plot_scatter:
     raw_input()
     plt.close(fig)

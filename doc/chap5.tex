@@ -20,6 +20,8 @@ parameters. The left side of each plot shows a scatter plot of false positive
 and true positive rates, while the right side shows the upper-left-most envelope
 of the set of all ROC curves.
 
+%TODO: Uncomment
+\begin{comment}
 \begin{figure}[!h]
 \begin{center}
 \includegraphics[height=2.5in]{../fig/final/scatter_env/gamma}
@@ -37,18 +39,56 @@ of the set of all ROC curves.
 \end{center}
 \caption{\label{fig:roc_env1}}
 \end{figure}
-
+\end{comment}
 
 \section{Examples} %TODO: Call this something better
 
-True positives. Slow rising vs fast rising.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/danny_welbeck.eps}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/barclays.eps}
+\end{center}
+\caption{\label{fig:examples1} Fast-spreading vs. slow-spreading topics. {\bf
+    Top}: English football player Danny Welbeck scores late in the second half
+  of the June 15th match between England and Sweden in the Euro 2012, securing a
+  3-2 victory for England. The reaction on Twitter is immediate. {\bf Bottom:}
+  Ed Miliband, leader of the UK's Labour Party, calls for a criminal
+  investigation of Barclays, the global financial services provider, over
+  involvement in the Libor fraud scandal. The story stimulates steadily growing
+  discussion over the course of the day.}
+\end{figure}
 
-True negatives.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/tn/ludacris.eps}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/tn/tweetin.eps}
+%\includegraphics[height=2.5in]{../fig/final/detection_examples/tn/whooo.eps}
+\end{center}
+\caption{\label{fig:examples2} Examples of true negatives --- topics that did
+  not trend and were not detected as trending. {\bf Top}: Although Ludacris, a
+  well-known celebrity, receives constant attention on Twitter, there is no
+  anomolous event involving Ludacris that would cause the topic to trend. {\bf
+    Bottom}: The word ``tweetin'' is being used as a part of regular speech to
+  refer to the act of posting a message on Twitter, and does not constitute a
+  trending topic. }
+\end{figure}
 
-False positives. Stuff with significant volume or spikes.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/fp/dragonfly.eps}
+\includegraphics[height=2.5in]{../fig/final/detection_examples/fp/redsn0w.eps}
+%\includegraphics[height=2.5in]{../fig/final/detection_examples/tn/whooo.eps}
+\end{center}
+\caption{\label{fig:examples3} Examples of false positives --- topics that did
+  not trend but were detected as trending. {\bf Top}: If the activity of a topic trends
+  upward for a sufficiently long time, it may sufficiently resemble the activity
+  of topics that trendedand lead to a false detection. {\bf Bottom}: Some false positives
+  refer to actual breaking events that happened to not make the Trending Topics
+  list on Twitter. The topic ``redsn0w,'' for example, coincides with a new
+  release of popular jailbreaking tool for iOS}
+\end{figure}
 
-False negatives. Stuff with too little volume or not enough spikes.
-
+\clearpage
 \section{Effect of Parameters}
 
 For each ROC curve, we have a parameter that varies to produce the ROC curve,

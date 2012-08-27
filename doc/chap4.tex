@@ -125,7 +125,7 @@ Tweets into time bins of a certain length. we used time bins of length two
 minutes. 
 
 \subsubsection{Normalizing to Remove Baseline}
-A first glance at the data (TODO: Show this!) reveals that many non-trending
+A first glance at the data reveals that many non-trending
 topics have a relatively high rate and volume of Tweets, and many trending
 topics have a relatively low rate and volume of Tweets. One important difference
 is that many non-trending topics have a high {\em baseline rate} of activity
@@ -135,7 +135,9 @@ likely to have a consistent baseline of activity becuase it is a common word. To
 emphasize the parts of the rate signal above the baseline and de-emphasize the
 parts below the baseline, we divide the rate by the mean rate over the entire
 window. We then take the resulting quotient to a power $\beta$, which controls
-how much we reward and penalize rates above and below the mean rate.
+how much we reward and penalize rates above and below the mean rate. Figure
+\ref{fig:spikes_baseline} shows signals without any baseline normalization and
+their baseline-normalized versions.
 
 \subsubsection{Rewarding Spikes}
 %TODO: This is weak. Do we want to be rewarding big jumps or sudden jumps? Not
@@ -146,7 +148,8 @@ trending topics typically contains larger and more sudden spikes than that of
 non-trending topics. We reward such spikes by emphasizing them, while
 de-emphasizing smaller spikes. If the signal so-far in the transformation
 process is $r$, we transform it to \[ s(t) = |\dot{r}(t)|^{\alpha},\] or in the
-discrete case, \[ s[n] = |r[n] - r[n-1]|^{\alpha},\] where $\alpha > 1$.
+discrete case, \[ s[n] = |r[n] - r[n-1]|^{\alpha},\] where $\alpha > 1$. Figure
+\ref{fig:spikes_baseline} shows the effect of this spike-based transformation.
 
 \subsubsection{Slicing}
 The signal resulting from the steps so far is as long as the entire time window
@@ -172,7 +175,8 @@ start and end times. For simplicity, all slices are a fixed size.
 \subsubsection{Smoothing}
 Tweet rates, and the aforementioned transformations thereof, tend to be noisy,
 especially for small time bins. To mitigate this, we convolve the signal
-resulting from the previous step with a smoothing window.
+resulting from the previous step with a smoothing window. Figure
+\ref{fig:smooth} shows the effect of smoothing with various window sizes.
 
 \subsubsection{Branching Processes and Logarithmic Scale}
 It is reasonable to think of the spread of a topic from person to person as a
@@ -185,7 +189,33 @@ the exponent depending on the details of the model \cite{AthreyaNey} (see
 \cite{Szabo} for a treatment involving the spread of topics on Twitter). It is
 reasonable, then, to measure the volume of tweets at a logarithmic scale to
 reveal these details. Therefore, as a final step, we take the logarithm of the
-signal constructed so far.
+signal constructed so far. Figure \ref{fig:log} shows a sample of signals and
+their log-scaled versions.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=3.10in]{../fig/final/signal_transform/log.eps}\includegraphics[width=3.10in]{../fig/final/signal_transform/log_baseline.eps}
+\includegraphics[width=3.10in]{../fig/final/signal_transform/log_baseline_spikes.eps}
+\end{center}
+\caption{\label{fig:baseline_spikes} Reference signals of either class are hard to tell apart without normalization. {\bf Top left}: no baseline or spike normalization. {\bf Top right}: Baseline normalization. {\bf Bottom}: Baseline and spike-based normalization.}
+\end{figure}
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=3.10in]{../fig/final/signal_transform/smooth_1.eps}\includegraphics[width=3.10in]{../fig/final/signal_transform/smooth_10.eps}
+\includegraphics[width=3.10in]{../fig/final/signal_transform/smooth_100.eps}
+\end{center}
+\caption{\label{fig:smooth} The results of smoothing the reference signals (with spike and baseline normalization previously applied) with windows of size 1 (2 minutes, i.e. no smoothing), 10 (20 minutes), and 100 (3 hours, 20 minutes).}
+\end{figure}
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=3.10in]{../fig/final/signal_transform/no_log.eps}\includegraphics[width=3.1in]{../fig/final/signal_transform/yes_log.eps}
+\end{center}
+\caption{\label{fig:log} Logarithmically scaled reference signals (with spike and baseline normalization previously applied) allow one to make finer-grained distinctions between signals. {\bf Left}: Not logarithmically scaled. {\bf Right}: Logarithmically scaled.}
+\end{figure}
+
+\clearpage
 
 \section{Experiment}
 We propose an experiment to measure our algorithm's performance on two fronts:
