@@ -2,11 +2,6 @@
 \label{ch:data}
 
 %TODO:
-% * Trending now vs trending in window
-% * Experimental setup, detection window, etc
-% * Minor cleanup (see Devavrat's comments)
-% * Plots of data and transformations!!
-%   - Show that same transformations applied to different datasets give qualitatively similar results.
 
 In this chapter, we consider the application of the method and algorithm proposed
 in chapters \ref{ch:method} and \ref{ch:alg} toward detection of trending topics
@@ -23,10 +18,10 @@ anyone can see them and potentially join a conversation on a variety of topics
 being discussed. Inevitably, some topics gain relatively sudden popularity on
 Twitter. For example, a popular topic might reflect an external event such as a
 breaking news story or an internally generated inside joke or game. Twitter
-surfaces such topics in the service as a list of Trending Topics. 
+surfaces such topics in the service as a list of top ten trending topics. 
 
 \subsection{Twitter-Related Definitions}
-Talking about Tweets, topics, trends and trending topics can be ambigious, so
+Talking about Tweets, topics, trends and trending topics can be ambiguous, so
 here we make precise our usage of these and related terms.
 
 \begin{defn}[Topic]
@@ -36,8 +31,18 @@ here we make precise our usage of these and related terms.
 \end{defn}
 
 \begin{defn}[Tweet about topic]
-A Tweet is {\bf about} a topic if it contains the topic as a substring.
+A Tweet is {\bf about} a topic if it contains the topic as a substring. Tweets
+can be about many topics.
 \end{defn}
+
+\begin{example}
+The following tweet by the author (handle @snikolov) contains the string
+``matlab.'' Hence, it is considered to be {\em about} the topic ``matlab.''
+\begin{quote}
+``matlab symbolic eigendecomposition. expressions with 25000+ characters are not
+always the most interpretable thing.''
+\end{quote}
+\end{example} 
 
 \begin{defn}[Trending topic]
 A {\bf trending topic} is a topic that is currently on the list of Trending
@@ -54,6 +59,14 @@ we say that the topic {\bf trended} during that time period.
   period of time.
 \end{defn}
 
+\begin{example}
+If the topic ``earthquake'' is currently in the trending topics list on Twitter,
+we say that ``earthquake'' is {\em trending}, and that earthquake is a {\em
+  trend}. The topic ``earthquake'' has a {\em trend onset}, which is the first
+time it was trending in a given period of time. This could, for example,
+correspond to when the earthquake happened. After ``earthquake'' is no longer
+trending, we say that ``earthquake'' {\em trended}.
+\end{example}
 
 \subsection{Problem Statement}
 At any given time there are many topics being talked about on Twitter. Of these,
@@ -81,7 +94,7 @@ which we can compare our most recent observations to do classification.
 
 The data collection process can be summarized as follows. First, we collected
 500 examples of topics that trended at least once between June 1, 2012 and June
-30, 2012 (hereafter refered to as the {\em sample window}) and 500 examples of
+30, 2012 (hereafter referred to as the {\em sample window}) and 500 examples of
 topics that never trended during the sample window. We then sampled Tweets from the
 sample window and labeled each Tweet according to the topics mentioned
 therein. Finally, we constructed a reference signal for each topic based on the
@@ -94,7 +107,7 @@ publicly available via the Twitter API.
 \subsubsection{Topics}
 We collected a list of all trending topics on Twitter from June 1, 2012 to June
 30, 2012 (the {\em sample window}) as well as the times that they were trending
-and their rank in the Trending Topics list on Twitter. Of those, we filtered out
+and their rank in the trending topics list on Twitter. Of those, we filtered out
 topics whose rank was never better than or equal to 3. In addition, we filtered
 out topics that did not trend for long enough (the time of the first appearance
 to the time of the last appearance is less than 30 minutes) as well as topics
@@ -108,11 +121,11 @@ topic to correspond to a single underlying event within the sample window.
 
 We collected topics that did not trend during the sample window in two
 steps. First, we sampled a list of $n$-grams (phrases consisting of $n$
-``words'') occuring on Twitter during the sample window for $n$ up to 5. We
+``words'') occurring on Twitter during the sample window for $n$ up to 5. We
 filtered out $n$-grams that contain any topic that trended during the sample
 window, using the original, unfiltered list of all topics that trended during
 the sample window. For example, if ``Whitney Houston'' trended during the sample
-window, then ``Whitney'' would would be filtered out of the list of topics that
+window, then ``Whitney'' would be filtered out of the list of topics that
 did not trend. We also removed $n$-grams shorter than three characters, as most
 of these did not appear to be meaningful topics. Lastly, we sampled 500
 $n$-grams uniformly from the filtered list of $n$-grams to produce the final
@@ -132,65 +145,74 @@ We discuss the process of converting the timestamped Tweets for a given topic
 into a reference signal. Each of the steps below is followed in order for each
 topic.
 
-\subsubsection{Computing Tweet Rate}
-First, we determine the rate of Tweets about a topic over time by binning the
-Tweets into time bins of a certain length. we used time bins of length two
-minutes. 
+\subsubsection{Tweet Rate}
+As a first step toward converting timestamped Tweets about a topic into a
+signal, we bin the Tweets into time bins of a certain length. We use time bins
+of length two minutes. Let $\rho[n]$ be the number of Tweets about a topic in
+the $n$th time bin. Let the cumulative volume of of Tweets up to time $n$ be
+\begin{gather}
+v[n] = \sum_{m \leq n} \rho[m]
+\end{gather}
+Thus, effectively $\rho[n]$ is the discrete derivative of the continuous
+cumulative volume $v(t)$ over time i.e. $\rho(t) = \dot{v}(t)$. Therefore, we
+shall call $\rho[n]$ the rate of the signal at time step $n$. Figure
+\ref{fig:rate} shows this rate for a topic over the whole sample window.
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/signal_transform/rate.eps}
+\end{center}
+\caption{\label{fig:rate} The rate of a topic over the sample window.}
+\end{figure}
 
-\subsubsection{Normalizing to Remove Baseline}
+\subsubsection{Baseline Normalization}
 A first glance at the data reveals that many non-trending topics have a
 relatively high rate and volume of Tweets, and many trending topics have a
 relatively low rate and volume of Tweets. One important difference is that many
 non-trending topics have a high {\em baseline rate} of activity while most
 trending topics are preceded by little, if any, activity prior to gaining sudden
 popularity. For example, a non-trending topic such as 'city' is likely to have a
-consistent baseline of activity becuase it is a common word. To emphasize the
+consistent baseline of activity because it is a common word. To emphasize the
 parts of the rate signal above the baseline and de-emphasize the parts below the
-baseline, we divide the rate by the mean rate over the entire window. We then
-take the resulting quotient to a power $\beta$, which controls how much we
-reward and penalize rates above and below the mean rate. Figure
-\ref{fig:spikes_baseline} shows signals without any baseline normalization and
-their baseline-normalized versions.
+baseline, we define a baseline $b$ as 
+\begin{gather}
+b = \sum_{n} \rho[n]
+\end{gather}
+and a baseline-normalized signal $\rho_{b}$ as
+\begin{gather}
+\rho_{b}[n] = \left(\frac{\rho[n]}{b}\right)^{\beta}.
+\end{gather}
+The exponent $\beta$ controls how much we reward and penalize rates above and
+below the baseline rate. In this thesis, we use $\beta = 1$. Figure
+\ref{fig:baseline_spikes} shows rate signals without any baseline normalization
+and their baseline-normalized versions.
 
-\subsubsection{Rewarding Spikes}
+\subsubsection{Spike Normalization}
 %TODO: This is weak. Do we want to be rewarding big jumps or sudden jumps? Not
 %clear which one you're doing here, and not clear which is more justifiable.
 Another difference between the rates of Tweets for trending topics and that of
 non-trending topics is the number and magnitude of spikes. The Tweet rates for
 trending topics typically contains larger and more sudden spikes than that of
 non-trending topics. We reward such spikes by emphasizing them, while
-de-emphasizing smaller spikes. If the signal so-far in the transformation
-process is $r$, we transform it to \[ s(t) = |\dot{r}(t)|^{\alpha},\] or in the
-discrete case, \[ s[n] = |r[n] - r[n-1]|^{\alpha},\] where $\alpha > 1$. Figure
-\ref{fig:spikes_baseline} shows the effect of this spike-based transformation.
-
-\subsubsection{Slicing}
-The signal resulting from the steps so far is as long as the entire time window
-from which all Tweets were sampled. Such a long signal is not particularly
-useful as a reference signal. Recall from chapter \ref{ch:alg} that to see how
-much the recent trajectory of the observed signal resembles part of a reference
-signal, we have to traverse the full length of the reference signal in order to
-find the piece that most closely resembles the recent observed trajectory. If
-the reference signal for topic that trended spans too long of a time window,
-only a small portion of it will represent activity surrounding the onset of the
-trend. In addition, it is inefficient to compare the recently observed
-trajectory to a reference signal that is needleslly long. Hence, it is necessary
-to select a small slice of signal from the much longer rate signal. In the case
-of topics that trended, we select a slice that terminates at the first onset of
-trend. That way, we capture the pattern of activity leading up to the trend
-onset, which is crucial for recognizing similar pre-onset activity in the
-observed signal. We do not include activity after the true onset because once
-the topics is listed in the Trending Topics on Twitter, we expect the
-predominant mode of spreading to change. For topics that did not trend, we
-assume that the rate signal is largely stationary and select slices with random
-start and end times. For simplicity, all slices are a fixed size.
+de-emphasizing smaller spikes. To do so, we define a
+baseline-and-spike-normalized rate
+\begin{gather}
+\rho_{b,s}[n] = \big|\rho_b[n] - \rho_b[n-1]\big|^{\alpha}
+\end{gather}
+in terms of the already baseline-normalized rate $\rho_b$.  The parameter
+$\alpha > 1$ controls how much spikes are rewarded. We use $\alpha =
+1.2$. Figure \ref{fig:baseline_spikes} shows the effect of this spike-based
+transformation.
 
 \subsubsection{Smoothing}
 Tweet rates, and the aforementioned transformations thereof, tend to be noisy,
-especially for small time bins. To mitigate this, we convolve the signal
-resulting from the previous step with a smoothing window of size
-$N_{smooth}$. Figure \ref{fig:smooth} shows the effect of smoothing with various
-window sizes.
+especially for small time bins. To mitigate this, we convolve the signal with a
+smoothing window of size $N_{smooth}$. Applied to the
+spike-and-baseline-normalized signal $\rho_{b,s}$, this yields the convolved
+version
+\begin{gather}
+\rho_{b,s,c}[n] = \sum_{m = n-N_{smooth}+1}^{n} \rho_{b,s}[m].
+\end{gather}
+Figure \ref{fig:smooth} shows the effect of smoothing with various window sizes.
 
 \subsubsection{Branching Processes and Logarithmic Scale}
 It is reasonable to think of the spread of a topic from person to person as a
@@ -199,13 +221,41 @@ over time, in which each individual of a population in a given generation
 produces a random number of individuals in the next generation. While we do not
 know the details of how a topic spreads, we do know that in a wide generality of
 branching processes, the growth of the population is exponential with time, with
-the exponent depending on the details of the model \cite{AthreyaNey} (see
-\cite{Szabo} for a treatment involving the spread of topics on Twitter). It is
+the exponent depending on the details of the model \cite{AthreyaNey}. It is
 reasonable, then, to measure the volume of tweets at a logarithmic scale to
-reveal these details. Therefore, as a final step, we take the logarithm of the
-signal constructed so far. Figure \ref{fig:log} shows a sample of signals and
-their log-scaled versions.
+reveal these details. Asur et al. confirm that the spread of topics on Twitter
+can be modeled as a branching process and also propose a logarithmic scaling
+\cite{Asur}. Therefore, as a final step, we take the logarithm of the signal
+constructed so far to produce the signal
+\begin{gather}
+\rho_{b,s,c,l}[n] = \log \rho_{b,s,c}[n].
+\end{gather}
+Figure \ref{fig:log} shows a sample of signals and their log-scaled versions.
 
+\subsubsection{Constructing a Reference Signal}
+The signal $\rho_{b,s,c,l}[n]$ resulting from the steps so far is as long as the
+entire time window from which all Tweets were sampled. Such a long signal is not
+particularly useful as a reference signal. Recall from chapter \ref{ch:alg} that
+to see how much the recent trajectory of the observed signal resembles part of a
+reference signal, we have to traverse the full length of the reference signal in
+order to find the piece that most closely resembles the recent observed
+trajectory. If the reference signal for topic that trended spans too long of a
+time window, only a small portion of it will represent activity surrounding the
+onset of the trend. In addition, it is inefficient to compare the recently
+observed trajectory to a reference signal that is needlessly long. Hence, it is
+necessary to select a small slice of signal from the much longer rate signal. In
+the case of topics that trended, we select a slice that terminates at the first
+onset of trend. That way, we capture the pattern of activity leading up to the
+trend onset, which is crucial for recognizing similar pre-onset activity in the
+observed signal. We do not include activity after the true onset because once
+the topics is listed in the trending topics list on Twitter, we expect the
+predominant mode of spreading to change. For topics that did not trend, we
+assume that the rate signal is largely stationary and select slices with random
+start and end times. For simplicity, all slices are a fixed size.
+
+Figures \ref{fig:baseline_spikes} through \ref{fig:log} show the samples of
+reference signals with various combinations of the transformations described in
+this section.
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=3.10in]{../fig/final/signal_transform/log.eps}\includegraphics[width=3.10in]{../fig/final/signal_transform/log_baseline.eps}
@@ -284,3 +334,19 @@ combination, we conducted 5 random trials.
 \item $\theta$: 0.65, 1, 3.
 \end{itemize}
 
+\subsection{Evaluation}
+To evaluate the performance of our method, we compute the false positive rate
+and true positive rate for each experiment, averaged over all trials. In the
+case of true detections, we compute the detection time relative to the true
+onset of the trending topic.
+
+Before presenting the results in the following chapter, we note the following
+important difference between the general detection method employed herein and
+that of Twitter. Twitter produces a list of top ten trending topics, while we
+perform detection based on a score and a threshold, and do not limit the number
+of topics detected as trending at any given time. This could cause noticeable
+discrepancies between the topics detected. For example, an otherwise popular
+emerging topic might not be detected as a trend if there are many other
+important topics being discussed at the moment. Despite these differences, we
+show in the next chapter that our algorithm can achieve good performance
+relative to that of Twitter.

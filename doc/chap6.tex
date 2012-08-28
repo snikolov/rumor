@@ -5,23 +5,25 @@
 We have introduced a setting to do inference in the presence of large amounts of
 data governed by an underlying stochastic model. Within this setting, we have
 derived an online time series classification method and an associated
-implementation that is simple, efficient, and scalable. To investigat the
-classification performance of our method, we applied it to the task of
-predicting trending topics on Twitter. We showed the method's flexibility by
-analyzing the effects of the algorithm parameters, and quantified the tradeoffs
-between relative detection time, true positive rate, and false positive
-rate. Finally, we demonstrated the method to be succesful in predicting trending
-topics on Twitter, at a low error rate, often before they are detected by
-Twitter.
+implementation that is simple, efficient, and scalable. We have investigated the
+classification performance of our method by applying it to the task of
+predicting trending topics on Twitter. We have showed the method's flexibility
+by analyzing the effects of the algorithm parameters, and have quantified the
+tradeoffs between relative detection time, true positive rate, and false
+positive rate. Finally, we have demonstrated the method to be successful in
+detecting trending topics on Twitter before Twitter's algorithm does, while
+maintaining a low error rate.
 
 \section{Future Work}
-Possible directions for future work include the following:
-
-\begin{itemize}
-\item To take advantage of the structure in large amounts of unlabeled data, it
-  would be desirable to extend the theory and algorithms presented in this
-  thesis to handle large amounts of unlabeled data.
-\item I'm going to think about this some more. I am still struggling a bit with
-  the big picture view. If you think of something, please let me know.
-\end{itemize}
-
+It remains to be established what the theoretical guarantees of our latent
+source method are. In particular, an important next step is to establish the
+statistical efficiency of our algorithm when the actual data is truly generated
+according to a latent source model. Another important step is to compare the
+classification performance of our algorithm relative to other supervised
+learning methods, e.g. ones based on Tikhonov Regularization. A third important
+step is to modify our algorithm to take advantage of the structure in large
+amounts of unlabeled data, as many large data sets are only sparsely labeled. A
+fourth and final important step is to evaluate the classification performance
+and computational efficiency of our algorithm on truly massive datasets. While
+we have designed our algorithm to be efficient and scalable, we have only used
+it on a relatively small data set and its full power remains to be seen.

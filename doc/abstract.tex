@@ -5,7 +5,7 @@
 
 In supervised classification, one attempts to learn a model of how objects map
 to labels. This involves selecting the best model from some model space,
-prefering a model that fits the data but has low complexity. The choice of model
+preferring a model that fits the data but has low complexity. The choice of model
 space encodes assumptions about the problem, for example, via a kernel and its
 associated Reproducing Kernel Hilbert Space. We propose a different setting for
 model specification and selection in supervised learning based on a {\em latent
@@ -25,13 +25,16 @@ belongs to a certain class, we can simply observe how much it resembles other
 examples of that class. This is well-suited to problems with large amounts of
 labeled data.
 
-We extend this approach to the problem of online timeseries classification. In
-the binary case, we derive a maximum likelihood estimator for online signal
-detection and an associated implementation that is simple, efficient, and
-scalable. We demonstrate the merit of our approach by applying it to the task of
-detecting {\em trending topics} on Twitter, and show that in many cases, we can
-detect trending topics before they are identified by Twitter while maintaining a
-low rate of error.
+We extend this approach to the problem of online time series classification. In
+the binary case, we derive an estimator for online signal detection and an
+associated implementation that is simple, efficient, and scalable. We
+demonstrate the merit of our approach by applying it to the task of detecting
+{\em trending topics} on Twitter. Using only a small sample of Tweets, our
+method can detect trends before Twitter does 79\% of the time, with a mean early
+advantage of 1.43 hours, while maintaining a 95\% true positive rate and a 4\%
+false positive rate. In addition, our method provides the flexibility to perform
+well under a variety of tradeoffs between true positive rate, false positive
+rate, and relative detection time.
 
 %(TODO: how is it ML?) 
 

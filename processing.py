@@ -1223,6 +1223,20 @@ def viz_timeseries(ts_infos, normalize = True):
     # Normalize.
     if normalize:
       ts_info = ts_normalize(ts_info, ts_norm_func, beta = 1)
+      
+    plot_raw = True
+    if plot_raw:
+      for t in ts_info:
+        if max(ts_info[t]['ts'].values) < 100:
+          continue
+        times = np.array(ts_info[t]['ts'].times)
+        plt.plot((times - np.min(times)) / 3600000.0, ts_info[t]['ts'].values,
+                 color = 'k')
+        plt.title('Topic: ' + t)
+        plt.xlabel('time (hours)')
+        plt.ylabel('rate')
+        raw_input()
+
     # Create bundles.
     bundle = ts_bundle(ts_info, detection_window_time, w_smooth = w_smooth)
     bundles[i] = bundle

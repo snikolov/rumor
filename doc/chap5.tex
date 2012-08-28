@@ -13,12 +13,30 @@ a false positive and a false negative are comparable.
 
 \section{Summary of Results}
 
-In this section we show the ROC curve envelopes for each parameter of our
-detection algorithm, as well as histograms of relative trend detection time
-compared to the true onset of trends, and discuss tradeoffs between true postive
-rate, false positive rate, and relative detection time. We demonstrate that in
-many cases we are able to detect trends earlier than Twitter while maintaining a
-low rate of error.
+In this section we show that we are able to detect trending topics before they
+are detected by Twitter while maintaining a low error rate. We showcase the
+flexibility of our algorithm and investigate the effects of parameters. In
+particular, we show that our algorithm accommodates a wide range of tradeoffs
+between true positive rate, false positive rate and relative detection time.
+
+\subsection{Main Result: Early Detection of Trending Topics}
+Our main result is that for a range of parameters, we are able to detect
+trending topics before they appear on Twitter's trending topics list. Figure
+\ref{fig:early} shows that for the given parameter setting, we are able to
+detect trending topics before Twitter does 79\% of the time, and when we do, we
+detect them an average of 1.43 hours earlier. Furthermore, we achieve a low
+error rate: a true positive rate of 95\% and a false positive rate of just 4\%.
+\begin{figure}[!h]
+\begin{center}
+\includegraphics[width=6in]{../fig/final/twitter_killer/ex2}
+\end{center}
+\caption{\label{fig:early} Our algorithm is able to achieve a low error rate
+  while detecting trending topics in advance of Twitter a large percentage of
+  the time.}
+\end{figure}
+Naturally, there are tradeoffs between false positive rate, true positive rate,
+and relative detection time. We explore these relationships in the following
+sections.
 
 \subsection{ROC Curve Envelopes}
 By varying a single parameter and keeping the rest fixed, we generate a Receiver
@@ -27,10 +45,9 @@ Positive Rate (FPR) and True Positive Rate (TPR). Figures \ref{fig:roc_env1} and
 \ref{fig:roc_env2} show the ROC curves that result from varying each detection
 parameter, aggregated over all combinations of the remaining parameters. The
 left side of each plot shows all ROC curves for a given variable parameter
-overlayed on a single set of axes. The right side shows the upper-right-most
+overlaid on a single set of axes. The right side shows the upper-right-most
 envelope of those ROC curves, representing the best-case, or achievable ROC
 curve.
-
 %TODO: Uncomment
 %\begin{comment}
 \begin{figure}[!h]
@@ -40,7 +57,7 @@ curve.
 \includegraphics[height=2.5in]{../fig/final/roc_env/dreq}
 \end{center}
 \caption{\label{fig:roc_env2} {\bf Left}: All ROC curves for the given variable
-  parameter overlayed on a single set of axes. {\bf Right}: The upper-right-most
+  parameter overlaid on a single set of axes. {\bf Right}: The upper-right-most
   envelope of those ROC curves, representing the best-case, or achievable ROC
   curve.  }
 \end{figure}
@@ -52,14 +69,21 @@ curve.
 \includegraphics[height=2.5in]{../fig/final/roc_env/href}
 \end{center}
 \caption{\label{fig:roc_env1}  {\bf Left}: All ROC curves for the given variable
-  parameter overlayed on a single set of axes. {\bf Right}: The upper-right-most
+  parameter overlaid on a single set of axes. {\bf Right}: The upper-right-most
   envelope of those ROC curves, representing the best-case, or achievable ROC
   curve.  }
 \end{figure}
+
+It is evident by the length of the ROC curves for each parameters that some
+parameters have a greater effect in trading off between $TPR$ and $FPR$. In
+Section \ref{sec:param_effect}, we investigate these effects in detail. However,
+in aggregate, the ranges of the parameters studied allow a full range of
+tradeoffs between $TPR$ and $FPR$, and show the flexibility of our approach.
 %\end{comment}
 
 \clearpage
-\subsection{Relative Detection Time}
+\subsection{Effect of $FPR$ and $TPR$ on Relative Detection Time}
+\label{sec:rel_det}
 Figure \ref{fig:early_vs_roc} shows the effect of position along the ROC curve
 on the relative detection times of our algorithm compared to Twitter's trend
 detection algorithm. To simplify our analysis, we break the ROC curve into three
@@ -121,7 +145,7 @@ not trend and were not detected as trending. In one case, the topic
 (``Ludacris'') is a celebrity who, despite receiving consistently high attention
 on Twitter, is not involved in any rapidly breaking story, and hence never
 becomes a trending topic in the time period considered. The other topic,
-``tweetin,'' is presumed to be a common expression that is not associted with
+``tweetin,'' is presumed to be a common expression that is not associated with
 any trending topic.
 \begin{figure}[!h]
 \begin{center}
@@ -132,7 +156,7 @@ any trending topic.
 \caption{\label{fig:examples2} Examples of true negatives --- topics that did
   not trend and were not detected as trending. {\bf Top}: Although Ludacris, a
   well-known celebrity, receives constant attention on Twitter, there is no
-  anomolous event involving Ludacris that would cause the topic to trend. {\bf
+  anomalous event involving Ludacris that would cause the topic to trend. {\bf
     Bottom}: The word ``tweetin'' is being used as a part of regular speech to
   refer to the act of posting a message on Twitter, and does not constitute a
   trending topic. }
@@ -140,7 +164,7 @@ any trending topic.
 
 In Figure \ref{fig:examples3}, we show examples of false negatives --- topics
 that were not trending, but were detected as such. It is interesting to note
-that ome topics that did not trend, such as ``redsn0w'' in the bottom half of
+that some topics that did not trend, such as ``redsn0w'' in the bottom half of
 the figure, may be associated with emerging stories of smaller magnitude that
 almost became trending topics.
 \begin{figure}[!h]
@@ -152,13 +176,14 @@ almost became trending topics.
 \caption{\label{fig:examples3} Examples of false positives --- topics that did
   not trend but were detected as trending. {\bf Top}: If the activity of a topic trends
   upward for a sufficiently long time, it may sufficiently resemble the activity
-  of topics that trendedand lead to a false detection. {\bf Bottom}: Some false positives
-  refer to actual breaking events that happened to not make the Trending Topics
+  of topics that trended and lead to a false detection. {\bf Bottom}: Some false positives
+  refer to actual breaking events that happened to not make the trending topics
   list on Twitter. The topic ``redsn0w,'' for example, coincides with a new
   release of popular jailbreaking tool for iOS.}
 \end{figure}
 
 \section{Effect of Parameters}
+\label{sec:param_effect}
 \subsection{Effect on Position Along ROC Curve}
 \clearpage
 In this section, we analyze the effect of each parameter on the position along
@@ -193,8 +218,8 @@ bottom & 68.76 & 6.83 & 1.81 & 3.70 & 2.69 & 88.10\\
 \clearpage
 \subsection{Effect on Movement Along ROC Curve}
 For each ROC curve, we have a parameter that varies to produce the ROC curve,
-which we will call the variable paramter, and a fixed combination of the
-remaining paramters, which we will call the constant parameters.
+which we will call the variable parameter, and a fixed combination of the
+remaining parameters, which we will call the constant parameters.
 
 As we vary the variable parameter, how do we move up or down the ROC curve?
 
@@ -206,10 +231,10 @@ combination of remaining parameters, we compute
 \Delta_{p,i}^{FPR} = \frac{FPR(p_{i}) - FPR(p_{i-1})}{p_i - p_{i-1}}\\
 \Delta_{p,i}^{TPR} = \frac{TPR(p_{i}) - TPR(p_{i-1})}{p_i - p_{i-1}}
 \end{gather}
-for each ROC curve associated with $p$ and for $i$ ranging from the second to the last value
-of $p$ in increasing order. If each point on the ROC curve is produced by
-multiple trials, we compute the above for all possible combinations of ROC
-curves. Finally, we compute the above across all combinations of fixed
+for each ROC curve associated with $p$ and for $i$ ranging from the second to
+the last value of $p$ in increasing order. If each point on the ROC curve is
+produced by multiple trials, we compute the above for all possible combinations
+of ROC curves. Finally, we compute the above across all combinations of fixed
 parameters.
 
 The result is a distribution of discrete derivatives of $FPR$ and $TPR$ with
@@ -293,7 +318,7 @@ $N_{smooth}$ has no significant effect for the range of smoothing widths
 explored. It is possible that a bigger difference may be seen outside of this
 range.
 
-\section{Recommendations}
+\section{Recommended Parameter Settings}
 
 We propose parameter regimes appropriate for the following three situations: 1)
 the cost of a false positive outweighs the cost of a false negative, 2) the cost
@@ -320,3 +345,9 @@ We recommend the parameter settings in the second row of Table
 $(FPR,TPR)$ equal to $(0.10,0.87)$. For fine-tuning, we can increase $N_{obs}$
 to simultaneously increase $TPR$ and decrease $FPR$.
 
+\subsection{Out of the Box}
+Finally, if one wishes to use the algorithm ``out of the box,'' we recommend,
+the parameter setting of $\gamma=10$, $N_{obs} =115$, $\theta = 1$,
+$N_{smooth}=80$, $h_{ref} = 7$, $D_{req}=1$ shown in Figure \ref{fig:early} at
+the beginning of this chapter, which achieves a $TPR$ of 95\%, a $FPR$ of 4\%,
+and is able to detect trending topics in advance of Twitter 97\% of the time.

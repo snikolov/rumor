@@ -581,11 +581,10 @@ def roc(res_paths):
         tpr = ecatd['tprs'][i]
         print i, ':', param_str, len(ecat), len(lcat), len(ecat) / float(len(lcat) + len(ecat)), fpr, tpr
 
-        cond = len(ecat) > 1.45 * len(lcat) and fpr < 0.10 and tpr > 0.92 and \
-            abs(np.mean(ecat)) > abs(np.mean(lcat))
-        print lcat
-        print ecat
+        #cond = len(ecat) > 1.45 * len(lcat) and fpr < 0.10 and tpr > 0.92 and \
+        #    abs(np.mean(ecat)) > abs(np.mean(lcat))
 
+        cond = fpr < 0.05 and tpr > 0.94
         param_avg = None
         param_count = 0
         
@@ -596,7 +595,7 @@ def roc(res_paths):
             param_avg += params
           param_count += 1
 
-          plt.figure(figsize = (9,2.75))
+          plt.figure(figsize = (9, 2.75))
           n, bins, hpatches = plt.hist(ecat, bins = nbins,
                                        histtype = 'stepfilled', color = 'k',
                                        align = 'mid', label = 'early')

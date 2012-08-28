@@ -40,8 +40,9 @@ resembles the reference signals for that class.
 Algorithm \ref{alg:Detect} contains the core detection logic. 
 % TODO: Justification for shift-invariance.
 \begin{algorithm}
-\caption{Perform online binary classification on an observed signal
-    using sets of positive and negative reference signals $R_+$ and $R_-$.}
+\caption{Perform online binary classification on the infinite stream $\mb
+  s_{\infty}$ using sets of positive and negative reference signals $R_+$ and
+  $R_-$.}
 \label{alg:Detect}
 \at{Detect}($\mb s_{\infty}$, $\mathcal{R}_+$, $\mathcal{R}_-$, $\gamma$, $\theta$,
 $D_{req}$):
@@ -55,7 +56,7 @@ $D_{req}$):
   \FOR{$\mb r$ {\bf in} $\mathcal{R}_-$}
     \STATE \vt{NegDists}.\at{Append}(\at{DistToReference}($\mb s$, $\mb r$))
   \ENDFOR
-  \STATE \vt{R} = \at{ProbClass}(\vt{PosDists}) / \at{ProbClass}(\vt{NegDists})
+  \STATE \vt{R} = \at{ProbClass}(\vt{PosDists}, $\gamma$) / \at{ProbClass}(\vt{NegDists}, $\gamma$)
   \IF{\vt{R} $> \theta$ }
     \IF{\vt{ConsecutiveDetections} $>$ $D_{req}$}
       \STATE \vt{DetectionTime} $\leftarrow$ \at{CurrentTime}()
@@ -69,12 +70,12 @@ $D_{req}$):
 \ENDLOOP
 \end{algorithmic}
 \end{algorithm}
-Using the notation of Chapter \ref{ch:method}, it updates the observation $\mb
+At each time step, it updates the observation $\mb
 s$ so that $\mb s$ contains the latest $N_{obs}$ samples from the infinite
 stream $\mb s_{\infty}$ and computes the distances \vt{PosDists}
 (resp. \vt{NegDists}) to reference signals of the positive class (resp. negative
-class). A detection is declared whenever the ration of class probabilities
-$R(\mb s)$ exceeds the threshold $\theta$ for $D_{req}$ consecutive timesteps.
+class). A detection is declared whenever the ratio of class probabilities
+$R(\mb s)$ exceeds the threshold $\theta$ for $D_{req}$ consecutive time steps.
 
 Algorithm \ref{alg:DistToReference} computes the distance between a reference
 signal $\mb r$ and an observation $\mb s$. 
@@ -93,10 +94,9 @@ signal $\mb r$ and an observation $\mb s$.
   \RETURN \vt{MinDist}
 \end{algorithmic}
 \end{algorithm}
-Since the reference signal is
-generally longer than the observation, we compute the minimum distance
-(Algorithm \ref{alg:DistToSignal}) across all pieces of $\mb r$ of the same size as $\mb
-s$.
+Since the reference signal is generally longer than the observation, we compute
+the minimum distance (Algorithm \ref{alg:DistToSignal}) across all pieces of
+$\mb r$ of the same size as $\mb s$.
 
 Algorithm \ref{alg:DistToSignal} simply computes the Euclidean distance between
 two signals of the same size.
@@ -113,3 +113,49 @@ two signals of the same size.
 \RETURN \vt{D}
 \end{algorithmic}
 \end{algorithm}
+
+Using the distances from an observation to the reference signals of a class, we
+compute a number proportional the probability that the observation belongs to
+the class (Algorithm \ref{alg:ProbClass}).
+\begin{algorithm}
+\caption{Using the distances of an observation to the reference signals of a
+  certain class, compute a number proportional to the probability that the
+  observation belongs to that class.}
+\label{alg:ProbClass}
+\at{ProbClass}(\vt{Dists}, $\gamma$):
+\begin{algorithmic}[1]
+\STATE $P \leftarrow 0$
+\FOR{$i=1$ to \at{Length}(\vt{Dists})}
+  \STATE $P \leftarrow P + \exp\left(-\gamma Dists_i\right)$
+\ENDFOR
+\RETURN $P$
+\end{algorithmic}
+\end{algorithm}
+
+\clearpage
+\section{Performance and Scalability}
+% TODO
+% Summarize performance
+To do detection on an infinite stream for $T$ time steps, with $|\mathcal{R}_+|$
+positive reference signals and $|\mathcal{R}_-|$ negative reference signals of
+length $N_{ref}$, and observations of length $N_{obs}$, our rudimentary
+implementation runs in $\mathcal{O}(TN_{ref}(|\mathcal{R}_-| +
+|\mathcal{R}_-|))$ time. In practice, the algorithm can be made faster by a
+constant factor by not performing detection on every time step, not computing
+distances based on the full $N_{obs}$ samples, or not comparing the observation
+to every single slice of the reference signal.
+
+Clearly, the computational cost of our implementation grows with the amount of
+data. Nevertheless, our approach is scalable, since one can compute in parallel
+the scores for each of the topics, as well as each of the reference signal
+distances for each topic.
+
+% Potential to be Super fast using trajectory indexing and retrieval
+A more sophisticated version of our algorithm would use an approach based on
+time series indexing. For instance, Rakthanmanon et al. have shown a way to
+efficiently search over trillions of time series subsequences
+\cite{Rakthanmanon}. Since our probability-based metric involves exponential
+decay based on the distance between signals, most reference signals that are far
+away from the observation can safely be ignored. Thus, instead of computing the
+distance to all reference signals, which could become costly, we can operate on
+only a very small fraction of them without significantly affecting the outcome.
