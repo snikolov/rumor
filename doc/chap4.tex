@@ -10,7 +10,7 @@
 
 In this chapter, we consider the application of the method and algorithm proposed
 in chapters \ref{ch:method} and \ref{ch:alg} toward detection of trending topics
-on Twitter. we discuss the Twitter service, the collectiion and pre-processing of
+on Twitter. we discuss the Twitter service, the collection and pre-processing of
 data, and the experimental setup for the detection task.
 
 \section{Overview}
@@ -28,19 +28,32 @@ surfaces such topics in the service as a list of Trending Topics.
 \subsection{Twitter-Related Definitions}
 Talking about Tweets, topics, trends and trending topics can be ambigious, so
 here we make precise our usage of these and related terms.
-\begin{itemize}
-\item We define a {\em topic} to be a phrase consisting of one or more {\em
-  words} delimited by spacing or punctuation. A word may be any sequence of
-  characters and need not be an actual dictionary word.
-\item A Tweet is {\em about} a topic if it contains the topic as a substring.
-\item A {\em trending topic} is a topic that is currently on the list of
-  Trending Topics on Twitter. If a topic was ever a trending topic during a
-  period of time, we say that the topic {\em trended} during that time period.
-\item A trending topic will also occasionally be referred to as a {\em trend}
+
+\begin{defn}[Topic]
+  We define a {\bf topic} to be a phrase consisting of one or more {\bf words}
+  delimited by spacing or punctuation. A word may be any sequence of characters
+  and need not be an actual dictionary word.
+\end{defn}
+
+\begin{defn}[Tweet about topic]
+A Tweet is {\bf about} a topic if it contains the topic as a substring.
+\end{defn}
+
+\begin{defn}[Trending topic]
+A {\bf trending topic} is a topic that is currently on the list of Trending
+Topics on Twitter. If a topic was ever a trending topic during a period of time,
+we say that the topic {\bf trended} during that time period.
+\end{defn}
+
+\begin{defn}[Trend] A trending topic will also occasionally be referred to as a {\bf trend}
   for short.
-\item The {\em trend onset} is the time that a topic first trended during a
+\end{defn}
+
+\begin{defn}[Trend onset]
+  The {\bf trend onset} is the time that a topic first trended during a
   period of time.
-\end{itemize}
+\end{defn}
+
 
 \subsection{Problem Statement}
 At any given time there are many topics being talked about on Twitter. Of these,
@@ -175,8 +188,9 @@ start and end times. For simplicity, all slices are a fixed size.
 \subsubsection{Smoothing}
 Tweet rates, and the aforementioned transformations thereof, tend to be noisy,
 especially for small time bins. To mitigate this, we convolve the signal
-resulting from the previous step with a smoothing window. Figure
-\ref{fig:smooth} shows the effect of smoothing with various window sizes.
+resulting from the previous step with a smoothing window of size
+$N_{smooth}$. Figure \ref{fig:smooth} shows the effect of smoothing with various
+window sizes.
 
 \subsubsection{Branching Processes and Logarithmic Scale}
 It is reasonable to think of the spread of a topic from person to person as a
@@ -256,4 +270,17 @@ seems to require {\em a priori} knowledge of whether the test topic ever trended
 or not, this is only a consequence of the shortcut we take to not do detection
 over the entire sample window.
 
-\subsection{Parameter Exploration}
+\subsection{Parameter Exploration and Trials}
+We explore all combinations of the following ranges of parameters, excluding
+parameter settings that are incompatible (e.g. $N_{obs} > N_{ref}$). For each
+combination, we conducted 5 random trials.
+
+\begin{itemize}
+\item $\gamma$: 0.1, 1, 10.
+\item $N_{obs}$: 10, 80, 115, 150.
+\item $N_{smooth}$: 10, 80, 115, 150.
+\item $h_{ref}$: 3, 5, 7, 9.
+\item $D_{req}$: 1, 3, 5.
+\item $\theta$: 0.65, 1, 3.
+\end{itemize}
+

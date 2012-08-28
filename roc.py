@@ -20,6 +20,13 @@ pp = pprint.PrettyPrinter(indent = 2)
 fpr_partition_threshold = 0.25
 tpr_partition_threshold = 0.75
 
+attr_math_name = {'gamma': '$\gamma$',
+                  'threshold': r'$\theta$',
+                  'cmpr_window': '$N_{obs}$',
+                  'detection_window_hrs': '$h_{ref}$',
+                  'req_consec_detections': '$D_{req}$',
+                  'w_smooth': '$N_{smooth}$'}
+
 def fix_detection_times(paramsets, statsets):
   for si in xrange(len(statsets)):
     cmpr_window = paramsets[si].cmpr_window
@@ -39,6 +46,14 @@ def fix_detection_times(paramsets, statsets):
                              if early <= 0 ])
       stats['earlies'] = correct_earlies
       stats['lates'] = correct_lates
+      """
+      print 'old earlies', sorted(earlies)
+      print 'new earlies', sorted(correct_earlies)
+      raw_input()
+      print 'old lates', sorted(lates)
+      print 'new lates', sorted(correct_lates)
+      raw_input()
+      """
 
 def point_to_category(fpr, tpr, fpr_partition_threshold = 0.5,
                       tpr_partition_threshold = 0.5):
@@ -108,6 +123,7 @@ def roc(res_paths):
       print 'Press any key'
       raw_input()
       plt.figure(figsize = (10,4.5))
+      plt.suptitle('Varying ' + attr_math_name[var_attr], size = 15)
       plt.subplot(121)
       plt.hold(False)
       plt.subplot(122)
@@ -139,16 +155,19 @@ def roc(res_paths):
     earliness['top']['tprs'] = []
     earliness['top']['earlies'] = []
     earliness['top']['lates'] = []
+    earliness['top']['params'] = []
     earliness['center'] = {}
     earliness['center']['fprs'] = []
     earliness['center']['tprs'] = []
     earliness['center']['earlies'] = []
     earliness['center']['lates'] = []
+    earliness['center']['params'] = []
     earliness['bottom'] = {}
     earliness['bottom']['fprs'] = []
     earliness['bottom']['tprs'] = []
     earliness['bottom']['earlies'] = []
     earliness['bottom']['lates'] = []
+    earliness['bottom']['params'] = []
 
     const_attrs = all_attrs[:]
     const_attrs.remove(var_attr)
@@ -337,6 +356,7 @@ def roc(res_paths):
                 earliness[category]['tprs'].append(tpr_trial)
                 earliness[category]['earlies'].append(earlies_trial)
                 earliness[category]['lates'].append(lates_trial)
+                earliness[category]['params'].append(prev_params)
 
           # Record measures of 'position' for this ROC curve to use for ranking
           # ROC curves by how far 'up' or 'down' they are. %TODO: awkward
@@ -358,11 +378,12 @@ def roc(res_paths):
 
           # Slap (0,0) and (1,1) onto mean_fprs, mean_tprs to complete the
           # ROC curve. Also put corresponding 0 stdevs in std_fprs, std_tprs.
+
           mean_fprs.extend([0,1])
           mean_tprs.extend([0,1])
           std_fprs.extend([0,0])
           std_tprs.extend([0,0])
-
+          
           point_sizes = [ s * 8 for s in np.array(range(0, len(mean_fprs))) + 0.1 ]
           point_sizes.extend([0.1,0.1])
 
@@ -383,7 +404,7 @@ def roc(res_paths):
 
           if plot:
             if save_fig:
-              if len(mean_fprs) > 2:
+              if len(mean_fprs) > 3:
                 # There were Points other than the manually added (0,0) and (1,1).
                 plt.savefig(os.path.join('fig', var_attr,
                                          const_attr_str) + '.png')
@@ -392,27 +413,31 @@ def roc(res_paths):
               # | PLOT SCATTER  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               plot_scatter = False
-              if plot_scatter and len(mean_fprs) > 2:
+              if plot_scatter and len(mean_fprs) > 3:
                 # Don't take the first and last if we've put a dummy 0 and 1 at
                 # each end of the means lists.
                 plt.subplot(121)
+                """
                 plt.errorbar(mean_fprs_ltor, mean_tprs_ltor,
                              xerr = std_fprs_ltor, yerr = std_tprs_ltor,
-                             color = 'k', linestyle = 'None',
-                             ms = 1, marker = 'o',
-                             elinewidth = 0.5)
+                             color = 'k', linestyle = '-', linewidth = 0.5,
+                             marker = 'o', elinewidth = 0.25)
+                """
+                plt.plot(mean_fprs_ltor[1:-1], mean_tprs_ltor[1:-1], color = 'k', lw = 0.5)
                 plt.hold(True)
                 # For increasing point sizes.
+                # Turn on scatter for markers at points
                 """
                 plt.scatter(mean_fprs_ltor, mean_tprs_ltor,
                             s = point_sizes_ltor, c = 'b')
                 """
+                """
                 plt.scatter(mean_fprs_ltor, mean_tprs_ltor,
                             s = 15, c = 'k')
-                plt.suptitle('Varying ' + var_attr)
-                plt.title('Scatterplot')
-                plt.xlabel('FPR')
-                plt.ylabel('TPR')
+                """
+                plt.title('All ROC Curves')
+                plt.xlabel('$FPR$')
+                plt.ylabel('$TPR$')
                 plt.grid(True)
                 """
                 plt.title(const_attr_str + '\n' + var_attr + '=' + \
@@ -424,6 +449,7 @@ def roc(res_paths):
                 # Enable for sequential viewing
                 #plt.hold(False)
                 #raw_input()
+                #plt.draw()
 
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
@@ -432,7 +458,7 @@ def roc(res_paths):
               if plot_curves:
                 num_unique = len(set([ (mean_fprs_ltor[i], mean_tprs_ltor[i]) 
                                        for i in range(len(mean_fprs_ltor)) ]))
-                if num_unique > 2:
+                if num_unique > 3:
                   # Plot bezier curves.
                   plot_poly = True
                   if plot_poly:
@@ -465,13 +491,15 @@ def roc(res_paths):
                   plt.xlim([-0.1,1.1])
                   plt.ylim([-0.1,1.1])
                   plt.hold(True)
-                  plt.title('Best-case envelope')
-                  plt.xlabel('FPR')
-                  plt.ylabel('TPR')
+                  plt.title('ROC Envelope')
+                  plt.xlabel('$FPR$')
+                  plt.ylabel('$TPR$')
                   plt.grid(True)
                   # Enable for sequential viewing
                   #raw_input()
-              
+                  #plt.draw()
+            plt.gcf().subplots_adjust(top = 0.85)
+
           # Reset variables for next ROC curve.
           mean_fprs = []
           mean_tprs = []
@@ -534,6 +562,79 @@ def roc(res_paths):
       var_attr_count += 1
 
     print var_attr  
+
+    plot_twitter_killer = True
+    if plot_twitter_killer:
+      nbins = 4
+      ecatd = earliness['center']
+      for i in xrange(len(ecatd['fprs'])):
+        ecat = [ -e / 3600000.0 for e in ecatd['earlies'][i] ]
+        lcat = [ l / 3600000.0 for l in ecatd['lates'][i] ]
+        params = ecatd['params'][i]
+
+        param_str = string.join(
+          [ '%s$=%s$' % (attr_math_name[attr], str(params._asdict()[attr])) 
+            for attr in all_attrs ],
+          ', ')
+          
+        fpr = ecatd['fprs'][i]
+        tpr = ecatd['tprs'][i]
+        print i, ':', param_str, len(ecat), len(lcat), len(ecat) / float(len(lcat) + len(ecat)), fpr, tpr
+
+        cond = len(ecat) > 1.45 * len(lcat) and fpr < 0.10 and tpr > 0.92 and \
+            abs(np.mean(ecat)) > abs(np.mean(lcat))
+        print lcat
+        print ecat
+
+        param_avg = None
+        param_count = 0
+        
+        if cond:
+          if param_avg is None:
+            param_avg = params
+          else:
+            param_avg += params
+          param_count += 1
+
+          plt.figure(figsize = (9,2.75))
+          n, bins, hpatches = plt.hist(ecat, bins = nbins,
+                                       histtype = 'stepfilled', color = 'k',
+                                       align = 'mid', label = 'early')
+          print bins
+          plt.setp(hpatches, 'facecolor', 'w')
+          nmax = max(n)
+          plt.hold(True)
+          n, bins, hpatches = plt.hist(lcat, bins = nbins,
+                                       histtype = 'stepfilled', color = 'k',
+                                       align = 'mid', label = 'late')
+          print bins
+          plt.setp(hpatches, 'facecolor', 'k')
+          nmax = max(max(n), nmax)
+          plt.ylim([0, 1.2 * nmax])
+
+          xmax = max(lcat)
+          plate = len(lcat) / float(len(lcat) + len(ecat))
+          plt.text(0.4 * xmax, nmax, '$P(early) = %.2f$' % (1 - plate),
+                    size = 10)
+          plt.text(0.4 * xmax, 0.8 * nmax, 
+                    '$P(late) = %.2f$' % plate, size = 10)
+          plt.text(0.4 * xmax, 0.6 * nmax,
+                    r'$\langle early \rangle = %.2f \; hrs.$' % (-np.mean(ecat)),
+                    size = 10)
+          plt.text(0.4 * xmax, 0.4 * nmax,
+                    r'$\langle late \rangle = %.2f \; hrs.$' % (np.mean(lcat)),
+                    size = 10)
+
+          plt.title('$FPR=%.2f,TPR=%.2f$\n%s' % (ecatd['fprs'][i],
+                                                   ecatd['tprs'][i],
+                                                   param_str))
+          plt.xlabel('hours late')
+          plt.ylabel('count')
+          plt.legend(loc = 1)
+          plt.gcf().subplots_adjust(left = 0.07, bottom = 0.20, right = 0.95,
+                                    top = 0.80)
+          #raw_input()
+          
 
     plot_earliness = False
     if plot_earliness:
@@ -635,7 +736,7 @@ def roc(res_paths):
       break
 
     # Partition delta ranked results into top, bottom, center.
-    plot_deltas_partitioned = True
+    plot_deltas_partitioned = False
     if plot_deltas_partitioned:
       plt.figure(figsize = (6,9))
       plt.suptitle(var_attr)

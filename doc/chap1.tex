@@ -8,59 +8,44 @@
 \label{ch:intro}
 \section{Motivation}
 
-{\bf Get to the point of what this is about and what your contributions are in
-  the first couple of sentences. Then you can elaborate.}
-
 Detection, classification, and prediction of events in temporal streams of
-information are ubiquitous problems in science, engineering and society (TOO
-BROAD?). From detecting malfunctions in a production plant, to predicting an
-imminent market crash, to revealing emerging popular topics in a social network,
-extracting useful information from time-varying data is fundamental for
-understanding the processes around us and making decisions.
-
-(The method does not require that the indpendent variable is time.)
+information are ubiquitous problems in science, engineering and society. From
+detecting malfunctions in a production plant, to predicting an imminent market
+crash, to revealing emerging popular topics in a social network, extracting
+useful information from time-varying data is fundamental for understanding the
+processes around us and making decisions.
 
 In recent years, there has been an explosion in the availability of data related
 to virtually every human endeavor --- data that demands to be analyzed and
 turned into valuable insights. Massive streams of user generated documents, such
 as blogs and tweets, as well as data from portable electronic devices, provide
 an amazing opportunity to study the dynamics of human social interaction online
-and face to face (cite Pentland?). How do people make decisions? Who are they
+and face to face \cite{Pentland}. How do people make decisions? Who are they
 influenced by? How do ideas and behaviors spread and evolve? These are questions
 that have been impossible to study empirically at scale until recent times. In
-healthcare, records of over-the-counter medication sales (cite National Retail
-Data Monitor) as well as search engine queries can anticipate the outbreak of
-disease and provide insight into the most effective ways to limit its
-spread. Particle collision experiments at the Large Hadron Collider generate
-more than 15 petabytes (SOURCE?) of data every year that promises to reveal the
-most fundamental physical truths.
+healthcare, records of over-the-counter medication sales
+\cite{NationalRetailDataMonitor} as well as search engine queries can anticipate
+the outbreak of disease and provide insight into the most effective ways to
+limit its spread. Particle collision experiments at the Large Hadron Collider
+generate more than 15 petabytes of data every year that promises to reveal
+fundamental physical truths.
 
-(Does the physics example really fit in here? It's not a network example, but it
-looks like we won't be using anything network specific in the method.)
-%In hospitals, continuous patient monitoring can help identify problematic
-%situations early on and allow medical professionals to make life-saving
-%decisions.
+Such large quantities of data present both opportunities and challenges. On the
+one hand, enough data can reveal the hidden underlying structure in a process of
+interest. On the other hand, making computations over so much data at scale is a
+challenge. Fortunately, in recent years, advances in distributed computing have
+made it easier than ever to exploit the structure in large amounts of data to do
+inference at scale.
 
-%The recent financial meltdown (ugh cliche) highlights the need for increased
-%efforts ??? what about Black Swan events, etc... of course there are things we
-%can't predict, but there should be plenty that we can that are
-%important... what's a good example?
+% TODO: transition
+All of the examples mentioned above share a common setting. There exists an
+underlying process whose observable properties generate time series. Using these
+time series, one may wish to do inference such as detecting anomalous events,
+classifying the current activity of the time series, or predicting the values of the time series at some future point.
 
-At the same time, advances in distributed computing have made it easier than
-ever to exploit the structure in that data to do inference at scale. ELABORATE?
-
-All of the examples mentioned above share a common setting. There is an
-underlying process whose observable properties generate timeseries. We would
-like to observe those timeseries to
-\begin{itemize}
-\item detect anomalous events
-\item classify the current activity of the timeseries into event types
-\item predict the values of the timeseries at some future point.
-\end{itemize}
-
-This is difficult to do in general. Many real-world processes defy simple models
-that describe their behavior. A quote from ``The Unreasonable Effectiveness of
-Data'' by Halevy, Norvig, and Pereira sums it up:
+This is difficult to do in general. Many real-world processes defy description
+by simple models. A quote from ``The Unreasonable Effectiveness of Data''
+\cite{people} by Halevy, Norvig, and Pereira sums this up:
 \begin{quote}
 ``{\em Eugene Wigner's article `The Unreasonable Effectiveness of Mathematics in
     the Natural Sciences' examines why so much of physics can be neatly
@@ -84,78 +69,101 @@ epidemics, rumor-spreading in social networks, financial transactions, and
 more. The inadequacy of simple models for complex behavior requires an approach
 that embraces this wealth of data and it highlights the need for a unified
 framework that efficiently exploits the structure in that data to do detection,
-classification, and prediction in timeseries.
+classification, and prediction in time series.
+
+In this thesis, we study the problem of prediction in a complex system using
+large amounts of data. Specifically, we focus on binary classification of time
+series and ask whether we can tell apart ``events'' from ``non-events'' given
+sufficient historical examples. We apply this to the problem of {\em trending
+  topic} detection on Twitter and investigate how early and how reliably we can
+predict that a topic will become popular. At the same time, we aim to introduce
+a more general setting for doing inference in timeseries based on a large amount
+of historical data.
+
+%In this thesis, we focus on the problem of time series classification. Rather
+%than imposing any structure on our model, however, we wish to do this in a
+%nonparametric fashion by relying directly on the data. In the process, we
+%introduce a general setting for supervised learning in which the model is
+%specified by unknown latent sources
 
 \section{Previous Work}
-Maybe start from more specific things (Twitter event detection, etc) and move to
-more general/abstract things and conclude with nonparametric timeseries methods.
 
-Event detection in timeseries.
+% ``deviation from baseline models''
 
-Classification in timeseries.
+A popular approach to detecting emerging popular topics in document streams is
+to measure the deviation of topics' activity relative to some baseline. Ihler et
+al. \cite{people} propose an event detection framework based on time-varying Poisson
+processes, in which a baseline Poisson rate is estimated in a sliding window and
+anomalies are considered to be deviations from a local the baseline. Becker et
+al. \cite{people}, Cataldi et al. \cite{people}, and Mathioudakis and Koudas. \cite{people} all
+group terms together to form topics and use a combination of features including
+temporal activity and social authority and interaction to detect trending
+topics.
 
-Prediction in timeseries.
+% ``actually modeling the underlying process models''
+Many approaches to emergint topic detection specifically, and detecting
+outbreaks in networks more generally, involve explicit models of a spreading
+process over a network.  Asur et al. \cite{people} model the formation, persistence
+and decay of trending topics on Twitter using a branching process
+model. Shtatland and Shtatland \cite{people} investigate oubreak phenomena based on an
+underlying SIR model for spreading. They train a stationary autoregressive model
+for spreading activity and declare anomalies when the model starts to become
+nonstationary. Gruhl et al. \cite{people} use a cascade model to study the propagation
+of information through a social network. They posit that topic activity is
+composed of ``spikes'' and ``chatter'' and characterize individuals in the
+network in terms of different posting behaviors. They then use an EM algorithm
+to infer which edges may have been active in the spread of the topic. For
+modeling the activity of topics in a document stream, models not based on
+networks also exist. Kleinberg \cite{people} models a stream of documents using an
+infinite state automaton and computes optimal state sequences based on the data
+to infer how the observed activity was generated.
 
-Models with theoretical justification for the underlying model of the
-process. Network cascade models. Branching process models.  Epidemics, Social
-Network rumor spreading
+A third class of methods operates on large collections of time series as a way
+to reason about the underlying hidden process without explicitly modeling that
+process. Along those lines a number of trajectory clustering methods have
+emerged recently. Gaffney and Smyth \cite{people} propose a method for trajectory
+clustering, where each cluster is modeled as a prototype trajectory with some
+noise. They produce low dimensional representations of the trajectories by using
+regression models and train a finite mixture model on the regression model
+components. Munaga et al. \cite{people} offer a more flexible approach that is able to
+identify regions of high density that are separated from one another by regions
+of low density as well as automatically determine the number of clusters. In the
+realm of supervised learning, McNames cite{} uses a ``nearest trajectory''
+strategy to do prediction in time series. Lenser and Veloso \cite{people} propose a
+method for nonparametric time series classification in time series produced by a
+process consisting of different underlying states, in which pieces of the time
+series are classified as having been produced by a certain state.
 
-(Nonparametric) timeseries clustering methods
+\section{Our Approach}
+Simple, parametric models prove ineffective at modeling many real-world complex
+systems. To resolve this, we propose a nonparametric framework for doing
+inference on time series. In this model, we posit the existence of a set of {\em
+  latent source} time series, or signals, each corresponding to a prototypical
+event of a certain type, and that each observed time series is a noisy
+observation of one of the latent time series.
 
-Explicit generative model? Mixture model?
-
-In principle, no tunable threshold required, because of explicit probabilistic
-model, threshold is just 1.
-
-Experimental results note. It could just be that the false positive rate is all
-of the things that have high volume that we weren't able to normalize away,
-except that there's only a few of them, so maybe what we're doing is not that
-impressive. However, if we compare to the unnormalized ones, we do (get solid
-confirmation) much better. Question: What false positive rate should we expect,
-even with the best method (just by looking at the data)?
-
-
-Show experimenta; results for multiple data sets to make sure you didnt jyst
-tweak the signal normalization for a partucular dataset
-
-\section{My Approach}
-Simple models prove ineffective when exposed to the vast variety of real world
-situations. [SAY MORE ABOUT THIS] I propose a nonparametric framework for doing
-inference on timeseries (VAGUE). In this model, we posit that there exist of a
-set of latent timeseries, each corresponding to a prototypical event of a
-certain type, and that each observed timeseries is a noisy observation of one of
-the latent timeseries.
-
-\subsection{Anomaly Detection}
-A timeseires in a given window is compared to a set of reference timeseries that
-represents ``normal'' events. We compute the probability that the observed
-timeseries was generated by a latent timeseries corresponding to a timeseries in
-the reference set. We then declare observations with low probability to be
-anomalies.
-
-\subsection{Classification}
-A timeseries in a given window is compared to two {\em reference} sets of
-timeseries --- one consisting of positive examples and the other of negative
-examples. We want to find out whether it is more likely that the observed
-timeseries was generated by one of the latent timeseries in the positive
-reference set or one of the latent timeseries in the negative reference set.
-
-\subsection{Prediction}
-A timeseries in a given window is compared to a single reference set of
-timeseries. We want to find out the probability that the observed timeseries was
-generated from the same latent timeseries as each of the timeseries in the
-set. We then compute the most likely change in the observed timeseries by
-observing the changes in each reference timeseries and weighting the change by
-the probability that the observed timeseries and the reference timeseries were
-generated by the same latent timeseries.
- 
-************Lots of work in clustering, but this has an explicit probabilistic
-model.
+In the case of classification, an observed signal, is compared to two sets of
+{\em reference} signals --- one consisting of positive examples and the other of
+negative examples. We posit that the observation belongs to the positive
+(resp. negative) class if it was generated by the same latent source as one of
+the positive (resp. negative) examples. To do classification, we compute the
+class probabilities conditioned on the observation. In our model, doing so
+involves a surprisingly simple computation --- to see how likely it is that an
+observation belongs to a certain class, one simply computes the distances from
+the observation to the reference signals in that class. This allows us to infer
+the class in a nonparametric fashion directly from the data without specifying
+any model structure.
 
 \subsection{Application: Detecting Outbreaks of Popular Topics on Twitter}
-As an application, I apply the method (CALL IT SOMETHING) to the problem of
-detecting emerging popular topics (called {\em trends}) on Twitter. I use a set
-of labeled examples of timeseries correspondingn to topics that eventually
-became trending topics and topics that did not. I then perform online
-classification of a given topic to label it as trending or not trending at a
-particular time.  ***********Talk about results and main contributions.
+
+As an application, I apply the latent source model to the problem of detecting
+emerging popular topics (called {\em trends}) on Twitter. Twitter is a real-time
+messaging service and information network whose users can post short (140
+characters or fewer) messages called {\em Tweets}. Tweets are public by default
+and broadcast to the users' {\em followers}. Users can engage in conversation
+with one another join a potentially global conversation on a variety of topics
+being discussed. Inevitably, some topics, such as a breaking news event, gain
+sudden popularity on Twitter. Twitter surfaces such topics in the service as a
+list of ``Trending Topics''. We apply our method to the task of detecting
+trending topics and show its effectiveness by comparing our results to the
+official topics detected by Twitter.

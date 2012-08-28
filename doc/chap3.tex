@@ -28,16 +28,17 @@ as a signal of that type. To compute the probability that the recently observed
 samples share the same process with a particular reference signal, we compute
 the distance between the trajectory consisting of the recently observed samples
 and all trajectories of the same size in the reference signal, and take the
-minimum over all such trajectories.
-
-% TODO: Justification for shift-invariance.
+minimum over all such trajectories. 
 
 \section{Implementation}
+In practice, the computation of probabilities amounts to nothing more than
+computing distances. To compute the probability that an observation belongs to a
+particular class, one simply computes the distance from the observation to each
+reference signal in that class in order to see how much the observation
+resembles the reference signals for that class.
 
-As in Chapter \ref{ch:method}, let $\mb s$ be the most recent $N_{obs}$ samples of the
-infinite observed signal $\mb s_{\infty}$ and let $\mb r$ be a reference signal
-of length $N_{ref}$.
-
+Algorithm \ref{alg:Detect} contains the core detection logic. 
+% TODO: Justification for shift-invariance.
 \begin{algorithm}
 \caption{Perform online binary classification on an observed signal
     using sets of positive and negative reference signals $R_+$ and $R_-$.}
@@ -68,7 +69,15 @@ $D_{req}$):
 \ENDLOOP
 \end{algorithmic}
 \end{algorithm}
+Using the notation of Chapter \ref{ch:method}, it updates the observation $\mb
+s$ so that $\mb s$ contains the latest $N_{obs}$ samples from the infinite
+stream $\mb s_{\infty}$ and computes the distances \vt{PosDists}
+(resp. \vt{NegDists}) to reference signals of the positive class (resp. negative
+class). A detection is declared whenever the ration of class probabilities
+$R(\mb s)$ exceeds the threshold $\theta$ for $D_{req}$ consecutive timesteps.
 
+Algorithm \ref{alg:DistToReference} computes the distance between a reference
+signal $\mb r$ and an observation $\mb s$. 
 \begin{algorithm}
 \caption{Compute the minimum distance between $\mb s$ and all pieces of $\mb r$
   of the same length as $\mb s$.}
@@ -84,7 +93,13 @@ $D_{req}$):
   \RETURN \vt{MinDist}
 \end{algorithmic}
 \end{algorithm}
+Since the reference signal is
+generally longer than the observation, we compute the minimum distance
+(Algorithm \ref{alg:DistToSignal}) across all pieces of $\mb r$ of the same size as $\mb
+s$.
 
+Algorithm \ref{alg:DistToSignal} simply computes the Euclidean distance between
+two signals of the same size.
 \begin{algorithm}
 \caption{Compute the distance between two signals $\mb s$ and $\mb t$ of the same
     length}
