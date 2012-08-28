@@ -1,0 +1,242 @@
+gamma
+---------
+top
+---------
+delta fprs
+overall:	-0.1772 +/- 0.3501
+positive change:	0.0272 +/- 0.0346	(18.95%)
+negative change:	-0.5588 +/- 0.3981	(32.63%)
+no change:		(48.42%)
+-----
+delta tprs
+overall:	-0.0194 +/- 0.0521
+positive change:	0.0061 +/- 0.0049	(15.79%)
+negative change:	-0.0716 +/- 0.0756	(28.42%)
+no change:		(55.79%)
+---------
+center
+---------
+delta fprs
+overall:	0.0733 +/- 0.1285
+positive change:       0.0952 +/- 0.1247	(84.52%)
+negative change:       -0.0461 +/- 0.0694	(15.48%)
+no change:	       (0.00%)
+-----
+delta tprs
+overall:	0.0244 +/- 0.0578
+positive change:       0.0401 +/- 0.0534	(76.45%)
+negative change:       -0.0266 +/- 0.0395	(23.55%)
+no change:	       (0.00%)
+---------
+bottom
+---------
+delta fprs
+overall:	0.0175 +/- 0.0173
+positive change:       0.0196 +/- 0.0171	(89.29%)
+no change:	       (10.71%)
+-----
+delta tprs
+overall:	0.4489 +/- 0.4109
+positive change:       0.4604 +/- 0.4097	(97.50%)
+negative change:       -0.0009 +/- 0.0009	(2.50%)
+no change:	       (0.00%)
+Press any key
+
+cmpr_window
+---------
+top
+---------
+delta fprs
+overall:	-0.0039 +/- 0.0045
+positive change:	0.0013 +/- 0.0015	(16.03%)
+negative change:	-0.0050 +/- 0.0041	(82.05%)
+no change:		(1.92%)
+-----
+delta tprs
+overall:	-0.0003 +/- 0.0008
+positive change:	0.0005 +/- 0.0005	(27.56%)
+negative change:	-0.0007 +/- 0.0007	(62.18%)
+no change:		(10.26%)
+---------
+center
+---------
+delta fprs
+overall:	-0.0003 +/- 0.0022
+positive change:	0.0016 +/- 0.0016	(40.36%)
+negative change:	-0.0016 +/- 0.0016	(59.44%)
+no change:		(0.20%)
+-----
+delta tprs
+overall:	0.0005 +/- 0.0015
+positive change:       0.0013 +/- 0.0012	(61.85%)
+negative change:       -0.0009 +/- 0.0009	(37.95%)
+no change:	       (0.20%)
+---------
+bottom
+---------
+delta fprs
+overall:	0.0002 +/- 0.0005
+positive change:       0.0005 +/- 0.0004	(63.33%)
+negative change:       -0.0003 +/- 0.0003	(35.00%)
+no change:	       (1.67%)
+-----
+delta tprs
+overall:	0.0026 +/- 0.0030
+positive change:       0.0034 +/- 0.0025	(86.67%)
+negative change:       -0.0023 +/- 0.0015	(13.33%)
+no change:	       (0.00%)
+Press any key
+
+threshold
+---------
+top
+---------
+delta fprs
+overall:	-1.0170 +/- 1.0657
+negative change:	-1.0170 +/- 1.0657	(100.00%)
+no change:		(0.00%)
+-----
+delta tprs
+overall:	-0.2358 +/- 0.2082
+positive change:	0.0274 +/- 0.0317	(3.05%)
+negative change:	-0.2504 +/- 0.2048	(94.49%)
+no change:		(2.46%)
+---------
+center
+---------
+delta fprs
+overall:	-0.1704 +/- 0.2389
+positive change:	0.0729 +/- 0.0897	(11.19%)
+negative change:	-0.2011 +/- 0.2342	(88.81%)
+no change:		(0.00%)
+-----
+delta tprs
+overall:	-0.0572 +/- 0.0738
+positive change:	0.0330 +/- 0.0264	(15.67%)
+negative change:	-0.0752 +/- 0.0672	(82.84%)
+no change:		(1.49%)
+---------
+bottom
+---------
+None
+-----
+None
+Press any key
+
+w_smooth
+---------
+top
+---------
+delta fprs
+overall:	-0.0003 +/- 0.0028
+positive change:	0.0021 +/- 0.0023	(41.07%)
+negative change:	-0.0021 +/- 0.0017	(58.04%)
+no change:		(0.89%)
+-----
+delta tprs
+overall:	0.0000 +/- 0.0005
+positive change:       0.0004 +/- 0.0004	(47.32%)
+negative change:       -0.0004 +/- 0.0004	(48.21%)
+no change:	       (4.46%)
+---------
+center
+---------
+delta fprs
+overall:	0.0001 +/- 0.0021
+positive change:       0.0013 +/- 0.0016	(53.17%)
+negative change:       -0.0013 +/- 0.0016	(46.17%)
+no change:	       (0.67%)
+-----
+delta tprs
+overall:	0.0000 +/- 0.0016
+positive change:       0.0010 +/- 0.0012	(50.17%)
+negative change:       -0.0010 +/- 0.0011	(49.33%)
+no change:	       (0.50%)
+---------
+bottom
+---------
+delta fprs
+overall:	0.0000 +/- 0.0003
+positive change:       0.0002 +/- 0.0002	(52.38%)
+negative change:       -0.0003 +/- 0.0002	(38.10%)
+no change:	       (9.52%)
+-----
+delta tprs
+overall:	0.0006 +/- 0.0025
+positive change:       0.0021 +/- 0.0015	(61.90%)
+negative change:       -0.0019 +/- 0.0014	(38.10%)
+no change:	       (0.00%)
+Press any key
+
+detection_window_hrs
+---------
+top
+---------
+delta fprs
+overall:	0.0365 +/- 0.0589
+positive change:       0.0519 +/- 0.0583	(77.42%)
+negative change:       -0.0165 +/- 0.0097	(22.58%)
+no change:	       (0.00%)
+-----
+delta tprs
+overall:	0.0006 +/- 0.0066
+positive change:       0.0057 +/- 0.0035	(54.84%)
+negative change:       -0.0056 +/- 0.0033	(45.16%)
+no change:	       (0.00%)
+---------
+center
+---------
+delta fprs
+overall:	0.0382 +/- 0.0862
+positive change:       0.0664 +/- 0.0909	(67.29%)
+negative change:       -0.0205 +/- 0.0269	(31.86%)
+no change:	       (0.85%)
+-----
+delta tprs
+overall:	-0.0014 +/- 0.0378
+positive change:	0.0254 +/- 0.0225	(50.60%)
+negative change:	-0.0289 +/- 0.0297	(49.23%)
+no change:		(0.17%)
+---------
+bottom
+---------
+None
+-----
+None
+Press any key
+
+req_consec_detections
+---------
+top
+---------
+delta fprs
+overall:	-0.0644 +/- 0.0746
+positive change:	0.0573 +/- 0.0516	(8.65%)
+negative change:	-0.0760 +/- 0.0656	(91.35%)
+no change:		(0.00%)
+-----
+delta tprs
+overall:	-0.0183 +/- 0.0303
+positive change:	0.0140 +/- 0.0222	(16.22%)
+negative change:	-0.0264 +/- 0.0277	(77.84%)
+no change:		(5.95%)
+---------
+center
+---------
+delta fprs
+overall:	-0.0174 +/- 0.0408
+positive change:	0.0256 +/- 0.0334	(24.75%)
+negative change:	-0.0318 +/- 0.0322	(74.85%)
+no change:		(0.40%)
+-----
+delta tprs
+overall:	-0.0333 +/- 0.0425
+positive change:	0.0164 +/- 0.0171	(19.16%)
+negative change:	-0.0454 +/- 0.0379	(80.24%)
+no change:		(0.60%)
+---------
+bottom
+---------
+None
+-----
+None

@@ -1,0 +1,208 @@
+gamma
+cmpr_window = 10
+0.04,0.47
+cmpr_window = 80
+0.04,0.53
+cmpr_window = 115
+0.05,0.55
+cmpr_window = 150
+0.06,0.56
+threshold = 3
+0.04,0.52
+w_smooth = 10
+0.04,0.52
+w_smooth = 80
+0.04,0.52
+w_smooth = 115
+0.04,0.52
+w_smooth = 150
+0.04,0.52
+detection_window_hrs = 3
+0.03,0.48
+detection_window_hrs = 5
+0.04,0.55
+detection_window_hrs = 7
+0.05,0.54
+detection_window_hrs = 9
+0.05,0.51
+req_consec_detections = 1
+0.03,0.45
+req_consec_detections = 3
+0.06,0.58
+req_consec_detections = 5
+0.04,0.53
+Press any key
+
+cmpr_window
+gamma = 0.1
+0.00,0.00
+gamma = 1
+0.02,0.70
+gamma = 10
+0.11,0.84
+threshold = 3
+0.04,0.52
+w_smooth = 10
+0.04,0.51
+w_smooth = 80
+0.04,0.52
+w_smooth = 115
+0.04,0.52
+w_smooth = 150
+0.04,0.52
+detection_window_hrs = 3
+0.03,0.47
+detection_window_hrs = 5
+0.04,0.55
+detection_window_hrs = 7
+0.05,0.54
+detection_window_hrs = 9
+0.05,0.51
+req_consec_detections = 1
+0.03,0.44
+req_consec_detections = 3
+0.06,0.58
+req_consec_detections = 5
+0.04,0.53
+Press any key
+
+
+threshold
+gamma = 0.1
+0.38,0.62
+gamma = 1
+0.39,0.87
+gamma = 10
+0.40,0.93
+cmpr_window = 10
+0.43,0.78
+cmpr_window = 80
+0.35,0.81
+cmpr_window = 115
+0.38,0.82
+cmpr_window = 150
+0.39,0.83
+w_smooth = 10
+0.39,0.80
+w_smooth = 80
+0.39,0.81
+w_smooth = 115
+0.39,0.80
+w_smooth = 150
+0.39,0.81
+detection_window_hrs = 3
+0.35,0.78
+detection_window_hrs = 5
+0.36,0.82
+detection_window_hrs = 7
+0.40,0.82
+detection_window_hrs = 9
+0.42,0.81
+req_consec_detections = 1
+0.36,0.76
+req_consec_detections = 3
+0.43,0.84
+req_consec_detections = 5
+0.38,0.81
+Press any key
+
+w_smooth
+gamma = 0.1
+
+0.00,0.00
+gamma = 1
+0.02,0.70
+gamma = 10
+0.11,0.84
+cmpr_window = 10
+0.03,0.47
+cmpr_window = 80
+0.04,0.52
+cmpr_window = 115
+0.05,0.54
+cmpr_window = 150
+0.06,0.55
+threshold = 3
+0.05,0.53
+detection_window_hrs = 3
+0.03,0.47
+detection_window_hrs = 5
+0.04,0.55
+detection_window_hrs = 7
+0.05,0.54
+detection_window_hrs = 9
+0.05,0.51
+req_consec_detections = 1
+0.02,0.44
+req_consec_detections = 3
+0.06,0.58
+req_consec_detections = 5
+0.04,0.53
+Press any key
+
+detection_window_hrs
+gamma = 0.1
+0.00,0.00
+gamma = 1
+0.02,0.70
+gamma = 10
+0.11,0.84
+cmpr_window = 10
+0.04,0.47
+cmpr_window = 80
+0.04,0.52
+cmpr_window = 115
+0.05,0.55
+cmpr_window = 150
+0.05,0.55
+threshold = 3
+0.04,0.53
+w_smooth = 10
+0.04,0.52
+w_smooth = 80
+0.04,0.52
+w_smooth = 115
+0.04,0.52
+w_smooth = 150
+0.04,0.52
+req_consec_detections = 1
+0.03,0.44
+req_consec_detections = 3
+0.06,0.58
+req_consec_detections = 5
+0.04,0.53
+Press any key
+
+req_consec_detections
+gamma = 0.1
+0.00,0.00
+gamma = 1
+0.02,0.70
+gamma = 10
+0.11,0.84
+cmpr_window = 10
+0.03,0.47
+cmpr_window = 80
+0.04,0.53
+cmpr_window = 115
+0.05,0.55
+cmpr_window = 150
+0.06,0.56
+threshold = 3
+0.04,0.52
+w_smooth = 10
+0.04,0.51
+w_smooth = 80
+0.04,0.52
+w_smooth = 115
+0.04,0.52
+w_smooth = 150
+0.04,0.52
+detection_window_hrs = 3
+0.05,0.49
+detection_window_hrs = 5
+0.04,0.54
+detection_window_hrs = 7
+0.04,0.54
+detection_window_hrs = 9
+0.04,0.52

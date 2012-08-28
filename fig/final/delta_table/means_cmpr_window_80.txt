@@ -1,0 +1,70 @@
+gamma
+top
+mean delta fprs = -0.2744
+mean delta tprs = -0.0322
+center
+mean delta fprs = 0.0664
+mean delta tprs = 0.0250
+bottom
+mean delta fprs = 0.0156
+mean delta tprs = 0.4615
+Press any key
+
+cmpr_window
+top
+mean delta fprs = -0.0039
+mean delta tprs = -0.0003
+center
+mean delta fprs = -0.0003
+mean delta tprs = 0.0005
+bottom
+mean delta fprs = 0.0002
+mean delta tprs = 0.0026
+Press any key
+
+threshold
+top
+mean delta fprs = -0.9893
+mean delta tprs = -0.2375
+center
+mean delta fprs = -0.1498
+mean delta tprs = -0.0502
+bottom
+None
+None
+Press any key
+
+w_smooth
+top
+mean delta fprs = -0.0003
+mean delta tprs = -0.0001
+center
+mean delta fprs = 0.0000
+mean delta tprs = -0.0000
+bottom
+mean delta fprs = 0.0000
+mean delta tprs = 0.0006
+Press any key
+
+detection_window_hrs
+top
+None
+None
+center
+mean delta fprs = 0.0641
+mean delta tprs = 0.0038
+bottom
+None
+None
+Press any key
+
+req_consec_detections
+top
+mean delta fprs = -0.0625
+mean delta tprs = -0.0152
+center
+mean delta fprs = -0.0182
+mean delta tprs = -0.0272
+bottom
+None
+None
