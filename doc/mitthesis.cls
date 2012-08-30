@@ -503,7 +503,6 @@ requirements for the \@degreeword\ of \\
 \end{center}
 \par
 \begin{abstract}}
-
 %% Changed from \unvbox to \unvcopy for use with multiple copies of abstract
 %% page.
 %% Krishna Sethuraman (1990)

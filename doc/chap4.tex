@@ -4,8 +4,8 @@
 %TODO:
 
 In this chapter, we consider the application of the method and algorithm proposed
-in chapters \ref{ch:method} and \ref{ch:alg} toward detection of trending topics
-on Twitter. we discuss the Twitter service, the collection and pre-processing of
+in Chapters \ref{ch:method} and \ref{ch:alg} toward detection of trending topics
+on Twitter. We discuss the Twitter service, the collection and pre-processing of
 data, and the experimental setup for the detection task.
 
 \section{Overview}
@@ -45,8 +45,8 @@ always the most interpretable thing.''
 \end{example} 
 
 \begin{defn}[Trending topic]
-A {\bf trending topic} is a topic that is currently on the list of Trending
-Topics on Twitter. If a topic was ever a trending topic during a period of time,
+A {\bf trending topic} is a topic that is currently on the list of trending
+topics on Twitter. If a topic was ever a trending topic during a period of time,
 we say that the topic {\bf trended} during that time period.
 \end{defn}
 
@@ -88,9 +88,10 @@ apply the classification method and algorithm described in Chapters
 \subsection{Data Collection}
 The online time series classification method detailed in Chapters
 \ref{ch:method} and \ref{ch:alg} requires a set of reference signals
-corresponding to trending topics and a set of reference signals corresponding to
-non-trending topics. These reference signals represent historical data against
-which we can compare our most recent observations to do classification.
+corresponding to topics that trended and a set of reference signals
+corresponding to topics that did not trend during a time window of
+interest. These reference signals represent historical data against which we can
+compare our most recent observations to do classification.
 
 The data collection process can be summarized as follows. First, we collected
 500 examples of topics that trended at least once between June 1, 2012 and June
@@ -239,7 +240,7 @@ particularly useful as a reference signal. Recall from chapter \ref{ch:alg} that
 to see how much the recent trajectory of the observed signal resembles part of a
 reference signal, we have to traverse the full length of the reference signal in
 order to find the piece that most closely resembles the recent observed
-trajectory. If the reference signal for topic that trended spans too long of a
+trajectory. If the reference signal for a topic that trended spans too long of a
 time window, only a small portion of it will represent activity surrounding the
 onset of the trend. In addition, it is inefficient to compare the recently
 observed trajectory to a reference signal that is needlessly long. Hence, it is
@@ -248,10 +249,10 @@ the case of topics that trended, we select a slice that terminates at the first
 onset of trend. That way, we capture the pattern of activity leading up to the
 trend onset, which is crucial for recognizing similar pre-onset activity in the
 observed signal. We do not include activity after the true onset because once
-the topics is listed in the trending topics list on Twitter, we expect the
+the topic is listed in the trending topics list on Twitter, we expect the
 predominant mode of spreading to change. For topics that did not trend, we
 assume that the rate signal is largely stationary and select slices with random
-start and end times. For simplicity, all slices are a fixed size.
+start and end times. For simplicity, all slices are a fixed size of $N_{ref}$.
 
 Figures \ref{fig:baseline_spikes} through \ref{fig:log} show the samples of
 reference signals with various combinations of the transformations described in
