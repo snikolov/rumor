@@ -446,22 +446,22 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
 
       plt.semilogy(np.array(scores[test_type][topic].times) / (3600 * 1000.0) - min_trend_time,
                score_values, color = 'k', lw = 1, label = '$R(\mathbf{s})$')
-      plt.title('Topic: ' + topic)
+      plt.title('Topic: ' + topic, size = 16)
       plt.hold(True)
 
       plt.axhline(1, color = 'k', ls = ':', label = r'$\theta$', lw = 0.5)
    
       fig.autofmt_xdate()
       #plt.xlabel('time after true onset (hours)')
-      plt.xlabel('time (hours)')
-      plt.ylabel('$R(\mathbf{s})$')
+      plt.xlabel('time (hours)', size = 16)
+      plt.ylabel('$R(\mathbf{s})$', size = 16)
       plt.ylim(ymin = 0.1)
 
       time_range = (scores[test_type][topic].tmax - scores[test_type][topic].tmin) / (1000.0 * 3600)
       plt.xlim([scores[test_type][topic].tmin / (1000.0 * 3600) - time_range * 0.4 - min_trend_time,
                 scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.3 - min_trend_time])
 
-      plt.legend(scatterpoints = 1, loc = 2, frameon = True)
+      plt.legend(scatterpoints = 1, loc = 2, frameon = False)
       plt.twinx()
 
       signal_values = np.array(signals[test_type][topic]['values'])
@@ -469,12 +469,12 @@ def viz_detection(ts_info_pos = None, ts_info_neg = None, trend_times = None,
       #signal_values = signal_values * (np.log(np.max(score_values)) / np.max(signal_values)) / 2.0
       plt.plot(np.array(signals[test_type][topic]['times']) / (1000 * 3600.0) - min_trend_time,
                signal_values, color = 'k', linestyle = '--', lw = 1, label = '$\mathbf{s}_{\infty}$')   
-      plt.ylabel('$\mathbf{s}_{\infty}$')
+      plt.ylabel('$\mathbf{s}_{\infty}$', size = 16)
       plt.xlim([scores[test_type][topic].tmin / (1000.0 * 3600) - time_range * 0.4 - min_trend_time,
-                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.3 - min_trend_time])
+                scores[test_type][topic].tmax / (1000.0 * 3600) + time_range * 0.0 - min_trend_time])
 
 
-      plt.legend(loc = 1, frameon = True)
+      plt.legend(loc = 1, frameon = False)
 
       plt.draw()
       raw_input()      

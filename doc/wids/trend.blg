@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2011)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: trend.aux
+The style file: acm.bst
+Database file #1: trend.bib
+Warning--empty journal in spike1
+You've used 3 entries,
+            2253 wiz_defined-function locations,
+            546 strings with 4421 characters,
+and the built_in function-call counts, 999 in all, are:
+= -- 98
+> -- 41
+< -- 0
++ -- 17
+- -- 14
+* -- 69
+:= -- 163
+add.period$ -- 9
+call.type$ -- 3
+change.case$ -- 16
+chr.to.int$ -- 0
+cite$ -- 4
+duplicate$ -- 43
+empty$ -- 78
+format.name$ -- 14
+if$ -- 211
+int.to.chr$ -- 0
+int.to.str$ -- 3
+missing$ -- 3
+newline$ -- 18
+num.names$ -- 6
+pop$ -- 15
+preamble$ -- 1
+purify$ -- 13
+quote$ -- 0
+skip$ -- 32
+stack$ -- 0
+substring$ -- 55
+swap$ -- 15
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 12
+warning$ -- 1
+while$ -- 9
+width$ -- 4
+write$ -- 32
+(There was 1 warning)

@@ -1,0 +1,22 @@
+\begin{thebibliography}{1}
+
+\bibitem{spike2}
+{\sc Mathioudakis, M., and Koudas, N.}
+\newblock Twittermonitor: Trend detection over the twitter stream.
+\newblock In {\em Proceedings of the 2010 ACM SIGMOD International Conference
+  on Management of Data\/} (New York, NY, USA, 2010), SIGMOD '10, ACM,
+  pp.~1155--1158.
+
+\bibitem{spike1}
+{\sc @twitter}.
+\newblock To trend or not to trend.
+\newblock \url{http://blog.twitter.com/2010/12/to-trend-or-not-to-trend.html}
+  (accessed 9 September, 2012).
+
+\bibitem{Zhao}
+{\sc Zhao, S., Zhong, L., Wickramasuriya, J., and Vasudevan, V.}
+\newblock Human as real-time sensors of social and physical events: A case
+  study of twitter and sports games.
+\newblock {\em CoRR abs/1106.4300\/} (2011).
+
+\end{thebibliography}

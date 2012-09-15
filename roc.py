@@ -123,7 +123,8 @@ def roc(res_paths):
       print 'Press any key'
       raw_input()
       plt.figure(figsize = (10,4.5))
-      plt.suptitle('Varying ' + attr_math_name[var_attr], size = 15)
+      
+      # plt.suptitle('Varying ' + attr_math_name[var_attr], size = 15)
       plt.subplot(121)
       plt.hold(False)
       plt.subplot(122)
@@ -454,7 +455,7 @@ def roc(res_paths):
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-              plot_curves = False
+              plot_curves = True
               if plot_curves:
                 num_unique = len(set([ (mean_fprs_ltor[i], mean_tprs_ltor[i]) 
                                        for i in range(len(mean_fprs_ltor)) ]))
@@ -491,9 +492,9 @@ def roc(res_paths):
                   plt.xlim([-0.1,1.1])
                   plt.ylim([-0.1,1.1])
                   plt.hold(True)
-                  plt.title('ROC Envelope')
-                  plt.xlabel('$FPR$')
-                  plt.ylabel('$TPR$')
+                  plt.title('ROC Curve Envelope', size = 16)
+                  plt.xlabel('$FPR$', size = 16)
+                  plt.ylabel('$TPR$', size = 16)
                   plt.grid(True)
                   # Enable for sequential viewing
                   #raw_input()
@@ -563,7 +564,7 @@ def roc(res_paths):
 
     print var_attr  
 
-    plot_twitter_killer = True
+    plot_twitter_killer = False
     if plot_twitter_killer:
       nbins = 4
       ecatd = earliness['center']
@@ -613,6 +614,7 @@ def roc(res_paths):
 
           xmax = max(lcat)
           plate = len(lcat) / float(len(lcat) + len(ecat))
+          """
           plt.text(0.4 * xmax, nmax, '$P(early) = %.2f$' % (1 - plate),
                     size = 10)
           plt.text(0.4 * xmax, 0.8 * nmax, 
@@ -623,12 +625,12 @@ def roc(res_paths):
           plt.text(0.4 * xmax, 0.4 * nmax,
                     r'$\langle late \rangle = %.2f \; hrs.$' % (np.mean(lcat)),
                     size = 10)
-
-          plt.title('$FPR=%.2f,TPR=%.2f$\n%s' % (ecatd['fprs'][i],
-                                                   ecatd['tprs'][i],
-                                                   param_str))
-          plt.xlabel('hours late')
-          plt.ylabel('count')
+          """
+          plt.title('$FPR=%.2f$, $TPR=%.2f$, $P(early)=%.2f$, $\langle early \\rangle=%.2f hrs$\n%s' % 
+                    (ecatd['fprs'][i], ecatd['tprs'][i], 1 - plate,
+                     -np.mean(ecat), param_str), size = 16)
+          plt.xlabel('hours late', size = 16)
+          plt.ylabel('count', size = 16)
           plt.legend(loc = 1)
           plt.gcf().subplots_adjust(left = 0.07, bottom = 0.20, right = 0.95,
                                     top = 0.80)
@@ -637,20 +639,25 @@ def roc(res_paths):
 
     plot_earliness = False
     if plot_earliness:
-      plt.figure(figsize = (7,14))
-      plt.suptitle('Early detection vs. position on ROC curve', size = 15)
+      #plt.figure(figsize = (7,14))
+      #plt.suptitle('Early detection vs. position on ROC curve', size = 15)
+      """
       plt.subplot(211)
       for (ci, category) in enumerate(earliness):
         ecatd = earliness[category]
         plt.scatter(ecatd['fprs'], ecatd['tprs'], s = 5, c = (0.75,0.75,0.75),
                     edgecolors = 'none')
         plt.hold(True)
+      """
+      cat_means = {}
       for (ci, category) in enumerate(earliness):
         ecatd = earliness[category]
         mfprs = np.mean(ecatd['fprs'])
         sfprs = np.std(ecatd['fprs'])
         mtprs = np.mean(ecatd['tprs'])
         stprs = np.std(ecatd['tprs'])
+        cat_means[category] = (mfprs, mtprs)
+        """
         plt.errorbar(mfprs, mtprs, xerr = sfprs, yerr = stprs,
                      linestyle = 'None', color = 'k', linewidth = 1.5)
         plt.hold(True)
@@ -668,8 +675,9 @@ def roc(res_paths):
         
         plt.xlabel('$FPR$')
         plt.ylabel('$TPR$')
-
+        """
       nbins = 10
+      
       for (ci, category) in enumerate(earliness):
         ecatd = earliness[category]
         ecat = []
@@ -679,7 +687,8 @@ def roc(res_paths):
         for l in ecatd['lates']:
           lcat.extend([ li / 3600000.0 for li in l])
 
-        plt.subplot(6, 1, ci + 4)
+        #plt.subplot(6, 1, ci + 4)
+        plt.subplot(1, 3, ci + 1)
         n, bins, hpatches = plt.hist(ecat, bins = nbins,
                                      histtype = 'stepfilled', color = 'k',
                                      align = 'mid', label = 'early')
@@ -694,6 +703,7 @@ def roc(res_paths):
         plt.ylim([0, 1.2 * nmax])
 
         plate = len(lcat) / float(len(lcat) + len(ecat))
+        """
         plt.text(-9.75, nmax, '$P(early) = %.2f$' % (1 - plate),
                   size = 10)
         plt.text(-9.75, 0.8 * nmax, 
@@ -704,11 +714,13 @@ def roc(res_paths):
         plt.text(-9.75, 0.4 * nmax,
                   r'$\langle late \rangle = %.2f \; hrs.$' % (np.mean(lcat)),
                   size = 10)
-
-        plt.title(category)
+        """
+        plt.title(r'$FPR=%.2f$, $TPR=%.2f$, $P(early)=%.2f$, $\langle early \rangle=%.2f hrs$' % 
+                  (cat_means[category][0], cat_means[category][1], 1 - plate,
+                  -np.mean(ecat)), size = 16)
         if ci == 2:
-          plt.xlabel('hours late')
-        plt.ylabel('count')
+          plt.xlabel('hours late', size = 16)
+        plt.ylabel('count', size = 16)
         
         if ci == 0:
           plt.legend(loc = 1)

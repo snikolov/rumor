@@ -6,8 +6,7 @@
   \normalsize $^{\dagger}$Department of EECS, Massachusetts Institute of Technology\\
  \normalsize $^{*}$Twitter, Inc.}
 
-\usepackage[margin=0.56in]{geometry}
-\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage[margin=0.6in]{geometry}
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage{amsmath,amssymb}
@@ -20,7 +19,6 @@
 \begin{document}
 
 \maketitle
-\thispagestyle{empty}
 
 \small
 
@@ -38,8 +36,8 @@ observation and its latent source, and propose a class estimator based on this
 model. Using our method, we are able to detect trending topics in advance of
 Twitter 79\% of the time, with a mean early advantage of 1 hour and 26 minutes,
 while maintaining a true positive rate of 95\% and a false positive rate of
-4\%. In addition, our method allows for tradeoffs between error types and
-relative detection time, scales to large amounts of data, and provides a broadly
+4\%. In addition, our method allows for tradeoffs between TPR, FPR, and relative
+detection time, scales to large amounts of data, and provides a broadly
 applicable framework for nonparametric classification.
 \end{abstract}
 
@@ -67,7 +65,7 @@ topic's imminent popularity. This suggests that we can detect trending topics
 earlier by observing this early activity. Thus, we propose to predict whether a
 topic will become {\em trending} by comparing recent time series of activity for
 the topic to historical time series of activity leading up to other topics
-becoming trending, and historical time series of activity for topics that did
+becoming trending, and historical time series of activity from topics that did
 not become trending.
 
 We define the {\em activity signal} for a topic in terms of the rate $\rho[n]$
@@ -89,17 +87,16 @@ Activity signals, even within a single class, are incredibly diverse. Rather
 than training a model to distinguish between the activity signals of trending
 and non-trending topics, we assume no model structure at all and instead propose
 the following nonparametric model relating observed activity signals ({\em
-  observations}) to their class labels. Suppose there are two classes: $+$
-(topics that were trending at some point during the period of interest) and $-$
-(topics that were never trending during the period of interest). We posit that
-there are a number of distinct {\em latent source} signals in each class that
-account for all observations in that class. Let us call them $\mb t_1, \dots,
-\mb t_n$ for $+$ and $\mb q_1, \dots, \mb q_{\ell}$ for $-$. Each observation
-labeled $+$ is assumed to be a noisy version of one of the latent sources $\mb
-t_1, \dots, \mb t_n$. Similarly, each observation labeled $-$ is assumed to be a
-noisy version of one of the latent sources $\mb q_1, \dots \mb q_{\ell}$. We do
-not know what the latent source signals are or even how many there are. We only
-know a stochastic model that relates an observation to its latent source.
+  observations}) to their class labels. Suppose there are two classes: $+$ and
+$-$. We posit that there are a number of distinct {\em latent source} signals in
+each class that account for all observations in that class. Let us call them
+$\mb t_1, \dots, \mb t_n$ for $+$ and $\mb q_1, \dots, \mb q_{\ell}$ for
+$-$. Each observation labeled $+$ is assumed to be a noisy version of one of the
+latent sources $\mb t_1, \dots, \mb t_n$. Similarly, each observation labeled
+$-$ is assumed to be a noisy version of one of the latent sources $\mb q_1,
+\dots \mb q_{\ell}$. We do not know what the latent source signals are or even
+how many there are. We only know a stochastic model that relates an observation
+to its latent source.
 
 Let the observation $\mb s$ be the most recent $N_{obs}$ samples of an infinite
 stream $\mb s_{\infty}$ of activity. An observation $\mb s$ is {\em generated}
@@ -109,14 +106,13 @@ by a latent source signal $\mb q$ according to the stochastic model
 \right)
 \end{gather}
 where $d$ is a symmetric, positive definite, and convex distance function (we
-used the Euclidean norm) and $\gamma$ is a scale parameter. To determine whether
-the observation belongs to $+$ or $-$, we make use of a set of example, or {\em
-  reference} activity signals $\mathcal{R}_+$ from $+$ and $\mathcal{R}_-$ from
-$-$. Under our model the observation must belong to $+$ if it has the same
-latent source as one of the reference signals in $\mathcal{R}_+$. Similarly, the
-observation must belong to $-$ if it has the same latent source as one of the
-reference signals in $\mathcal{R}_-$. Hence, the probability that the
-observation belongs to $+$ is
+used the Euclidean norm). To determine whether the observation belongs to $+$ or
+$-$, we use of a set of example, or {\em reference} activity signals
+$\mathcal{R}_+$ from $+$ and $\mathcal{R}_-$ from $-$. Under our model the
+observation must belong to $+$ if it has the same latent source as one of the
+reference signals in $\mathcal{R}_+$. Similarly, the observation must belong to
+$-$ if it has the same latent source as one of the reference signals in
+$\mathcal{R}_-$. Hence, the probability that the observation belongs to $+$ is
 \begin{align}
 \pr(+ \;|\; \mb s) &= \sum_{\mb r \in \mathcal{R}_+} \pr(\mb s \text{ belongs to } +, \mb s \text{ shares a latent source
   with } \mb r) = \sum_{\mb r \in \mathcal{R}_+} \sum_{j = 1}^n \pr( \mb s \text{ generated by }
@@ -136,7 +132,6 @@ unknown, we cannot directly compare the observation with them. Instead we
 compare the observation to the reference signals, using them as a proxy for the
 latent sources. Figure \ref{fig:method} illustrates this.
 \begin{figure}
-
 \begin{center}
 %\includegraphics[width=7.5in]{allfig.png}
 \includegraphics[height=0.75in]{latent_source_color}
@@ -146,52 +141,62 @@ latent sources. Figure \ref{fig:method} illustrates this.
   s, \mb t_j) + d(\mb r, \mb t_j)$, i.e. the latent source signal most likely to
   have generated both $\mb s$ and $\mb r$.}
 \end{figure}
-We classify the observation according to $f(\mb s) = \mathrm{sgn}(R(\mb s) -
-\theta)$, where $R(\mb s) = \pr(+ | \mb s)/\pr(- | \mb s)$ and $\theta$ is a
-threshold. We can optionally require $D_{req}$ consecutive ``detections'' to
-declare something a trending topic. This approach has an appealing
-interpretation: to classify an observation, one simply computes the distance
-from the observation to all examples from each class. This can be done in
-parallel on enormous data sets.
+We classify the observation according to $f(\mb s) = \mathrm{sgn}(R(\mb s)
+- \theta)$, where $R(\mb s) = \pr(+ | \mb s)/\pr(- | \mb s)$ and $\theta$ is a
+threshold. This approach has an appealing interpretation: to classify an
+observation, one simply computes the distance from the observation to all
+examples from each class. This can be done in parallel on enormous data sets.
 
 \subsubsection*{Results and Conclusion}
-We collected 500 topics that were trending at some point during June 2012, and
-500 that were not. We then collected 10\% of the Tweets from June 2012
-containing those topics. We used a 50/50 split between reference signals and
-observations and performed detection in a window of size $2h_{ref}$ hours,
-centered around the true onset of the trending topic if the topic was trending
-or chosen randomly otherwise. We performed detection for a range of parameters
-$\gamma, N_{obs}, h_{ref}, N_{smooth}, \theta$ and $D_{req}$ to evaluate
-tradeoffs between detection errors and relative detection time. Using this small
-sample of Tweets, our method is capable of detecting trends in advance of
-Twitter 79\% of the time, with a mean early advantage of 1 hour and 26 minutes,
-while maintaining a 95\% true positive rate and a 4\% false positive rate
-(Figure \ref{fig:results} (left)). Figure \ref{fig:results} (right) shows an
-example early detection in which our method detected the trending topic ``Miss
-Rhode Island'' over 2 hours in advance of Twitter. In Figure \ref{fig:results}
-(center) the envelope of ROC curves for all combinations of parameters shows the
-ability of our method to perform well under a variety of tradeoffs between types
-of error.  It should be noted that Twitter's trending topic detection method may
-need to be more conservative to avoid low-quality trending topics, and that on
-Twitter, trending topics compete for the top ten spots, whereas our method is
-based on a score threshold alone. Nevertheless, our results demonstrate the
-effectiveness of our method for trending topic detection, as well as its
-potential as a broadly applicable framework for scalable nonparametric
-classification in the presence of large amounts of data.
+We collected 500 trending and 500 non-trending topics during the month of June,
+2012 and 10\% of the Tweets containing those topics. We used a 50/50 split
+between reference signals and observations and performed detection in a window
+of size $2h_{ref}$ hours, centered around the true onset of the trending topic
+if the topic was trending or chosen randomly otherwise. Using this small sample
+of Tweets, our method is capable of detecting trends before Twitter does 79\% of
+the time, with a mean early advantage of 1 hour and 26 minutes, while
+maintaining a 95\% true positive rate and a 4\% false positive rate (Figure
+\ref{fig:results} (left)). Figure \ref{fig:results} (right) shows an example
+early detection in which our method detected the trending topic ``Miss Rhode
+Island'' over 2 hours before Twitter did. In Figure \ref{fig:results} (center)
+the envelope of ROC curves for all combinations of parameters shows the ability of
+our method to perform well under a variety of tradeoffs between types of error.
+In addition, our method servers as a broadly applicable framework for scalable
+nonparametric classification in the presense of large amounts of data.
 \begin{figure}
 \begin{center}
 %\includegraphics[width=7.5in]{allfig.png}
 \includegraphics[height=1.0in]{best}\includegraphics[height=1.30in]{roc_env}\includegraphics[height=1.30in]{example}
 \end{center}
-\caption{\label{fig:results}Our method is capable of early detection of trending
-  topics while maintaining a low rate of error and provides the flexibility for
-  tradeoffs between error types.}
+\caption{\label{fig:results}. Our method is capable of early detection of trending topics while maintaining a low rate of error and provides the flexibility for tradeoffs between error types.}
 \end{figure} 
 
 \begin{footnotesize}
 \bibliographystyle{acm}
 \bibliography{trend}
 \end{footnotesize}
-
-\thispagestyle{empty}
 \end{document}
+
+\begin{comment}
+We observe that trending topics are distinguished from nontrending topics by
+their pattern of activity leading up to the time the topic is detected by
+Twitter (the true onset)
+
+We define the activity signal for a topic in terms of the rate of Tweets about
+that topic. To define the activity signal for a topic, let $\rho[n]$ be the
+number of Tweets in the $n$th time bin, for $n=1,\dots,N$. Since this is the
+discrete derivative of the volume of Tweets over time, we shall call this the
+{\em rate} of Tweets. To remove the effect of different baseline rates, we
+construct a baseline-normalized rate $\rho_b[n] = \left(\rho[n]/b
+\right)^{\beta}$ using the baseline $b = (\sum_{n} \rho[n])/N$. To emphasize
+spikes we define $\rho_{b,s}[n] = \big|\rho_b[n] - \rho_b[n-1]\big|^{\alpha}$
+{\bf Spike, Log, Smoothing}
+
+We observe that trending topics are distinguished from nontrending
+topics by their pattern of activity leading up to the time the topic is detected
+by Twitter (the true onset). In particular, the activity of a soon to be
+trending topic is characterized by frequent sharp jumps of high magnitude over
+some baseline activity. Let $\rho[n]$ be the discrete derivative at time step
+$n$ of the volume $v(t)$ of Tweets about a topic over time, for $n = 1, \dots,
+N$. We shall call this the rate of Tweets. 
+\end{comment}
