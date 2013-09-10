@@ -6,6 +6,7 @@ import pickle
 import pprint
 import string
 import matplotlib.patches as patches
+import rumor
 
 from math import exp
 from matplotlib import rc
@@ -17,13 +18,15 @@ rc('text', usetex = False)
 np.seterr(all = 'raise')
 pp = pprint.PrettyPrinter(indent = 2)
 
+offset_filter_hrs = 3
+
 fpr_partition_threshold = 0.25
 tpr_partition_threshold = 0.75
 
 attr_math_name = {'gamma': '$\gamma$',
                   'threshold': r'$\theta$',
                   'cmpr_window': '$N_{obs}$',
-                  'detection_window_hrs': '$h_{ref}$',
+                  'detection_window_hrs': '$h$',
                   'req_consec_detections': '$D_{req}$',
                   'w_smooth': '$N_{smooth}$'}
 
@@ -32,6 +35,7 @@ def fix_detection_times(paramsets, statsets):
     cmpr_window = paramsets[si].cmpr_window
     offset = cmpr_window * 100000
 
+    # Offset due to comparison window
     for stats in statsets[si]:
       if not stats:
         continue
@@ -53,6 +57,39 @@ def fix_detection_times(paramsets, statsets):
       print 'old lates', sorted(lates)
       print 'new lates', sorted(correct_lates)
       raw_input()
+      """
+  """
+  # Offset due to other onsets
+  offsets = rumor.parsing.parse_onset_offsets('data/offsets.tsv')
+  for si in xrange(len(statsets)):
+    for stats in statsets[si]:
+      if not stats:
+        continue
+      earlies = stats['earlies']
+      lates = stats['lates']
+
+      offset = np.mean([ v for v in offsets.values() if v <= offset_filter_hrs ]) * 3600000
+      print offset / 3600000.0
+      print np.array(sorted(earlies)) / 3600000.0
+      print np.array(sorted(lates)) / 3600000.0
+      offset_earlies = np.array(earlies) - offset
+      offset_lates = np.array(lates) + offset
+      true_earlies = []
+      true_lates = []
+      for e in offset_earlies:
+        if e < 0:
+          true_lates.append(-e)
+        else:
+          true_earlies.append(e)
+      for e in offset_lates:
+        if e < 0:
+          true_earlies.append(-e)
+        else:
+          true_lates.append(e)
+          
+      true_earlies = [ t for t in true_earlies if t < offset_filter_hrs ] 
+      stats['earlies'] = true_earlies
+      stats['lates'] = true_lates
       """
 
 def point_to_category(fpr, tpr, fpr_partition_threshold = 0.5,
@@ -78,6 +115,7 @@ def roc(res_paths):
       statsets.append(statset)
 
   fix_detection_times(paramsets, statsets)
+
   """
   # Sort just to make sure (TODO: untested) TODO: This will come in handy when
   # getting data from multiple files.
@@ -455,7 +493,7 @@ def roc(res_paths):
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
               # | PLOT LINES  
               # +-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-              plot_curves = True
+              plot_curves = False
               if plot_curves:
                 num_unique = len(set([ (mean_fprs_ltor[i], mean_tprs_ltor[i]) 
                                        for i in range(len(mean_fprs_ltor)) ]))
@@ -564,20 +602,30 @@ def roc(res_paths):
 
     print var_attr  
 
-    plot_twitter_killer = False
+    plot_twitter_killer = True
     if plot_twitter_killer:
       nbins = 4
       ecatd = earliness['center']
+      ecat_for_params = []
+      lcat_for_params = []
       for i in xrange(len(ecatd['fprs'])):
         ecat = [ -e / 3600000.0 for e in ecatd['earlies'][i] ]
         lcat = [ l / 3600000.0 for l in ecatd['lates'][i] ]
         params = ecatd['params'][i]
 
+        """
         param_str = string.join(
           [ '%s$=%s$' % (attr_math_name[attr], str(params._asdict()[attr])) 
             for attr in all_attrs ],
           ', ')
-          
+        """
+
+        param_str = string.join(
+          [ '%s$=%s$' % (attr_math_name[attr], str(params._asdict()[attr])) 
+            for attr in all_attrs
+            if attr not in ['req_consec_detections', 'threshold'] ],
+          ', ')
+
         fpr = ecatd['fprs'][i]
         tpr = ecatd['tprs'][i]
         print i, ':', param_str, len(ecat), len(lcat), len(ecat) / float(len(lcat) + len(ecat)), fpr, tpr
@@ -586,6 +634,7 @@ def roc(res_paths):
         #    abs(np.mean(ecat)) > abs(np.mean(lcat))
 
         cond = fpr < 0.05 and tpr > 0.94
+
         param_avg = None
         param_count = 0
         
@@ -600,6 +649,7 @@ def roc(res_paths):
           n, bins, hpatches = plt.hist(ecat, bins = nbins,
                                        histtype = 'stepfilled', color = 'k',
                                        align = 'mid', label = 'early')
+
           print bins
           plt.setp(hpatches, 'facecolor', 'w')
           nmax = max(n)
@@ -626,16 +676,17 @@ def roc(res_paths):
                     r'$\langle late \rangle = %.2f \; hrs.$' % (np.mean(lcat)),
                     size = 10)
           """
+
           plt.title('$FPR=%.2f$, $TPR=%.2f$, $P(early)=%.2f$, $\langle early \\rangle=%.2f hrs$\n%s' % 
                     (ecatd['fprs'][i], ecatd['tprs'][i], 1 - plate,
                      -np.mean(ecat), param_str), size = 16)
+
           plt.xlabel('hours late', size = 16)
           plt.ylabel('count', size = 16)
           plt.legend(loc = 1)
           plt.gcf().subplots_adjust(left = 0.07, bottom = 0.20, right = 0.95,
                                     top = 0.80)
-          #raw_input()
-          
+          #raw_input()              
 
     plot_earliness = False
     if plot_earliness:

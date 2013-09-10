@@ -50,10 +50,13 @@ def parse_edges_sampled(path, p):
   return edges
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def line_to_fields(line):
-  fields = re.split('\t|\n', line)
+def line_to_fields(line, delimiter = '\t', newline_terminated = True):
+  fields = re.split(delimiter + '|\n', line)
   # Last element of fields is expected to be a \n.
-  return fields[0:-1]
+  if newline_terminated:
+    return fields[0:-1]
+  else:
+    return fields
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 def line_to_fields_precomp(line, reg):
@@ -312,6 +315,7 @@ def parse_timeseries_from_file_opt(f, topic_info):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Builds gexf graph from timestamped edges
+# TODO: Only add node when it is the destination!! See processing.build_gexf.
 def build_gexf(path, out_name, p_sample = 1):
   if not Gexf_loaded:
     print 'Could not import Gexf from gexf module.'
@@ -403,3 +407,61 @@ def parse_trend_times(path):
       trending_times[topic].append(time)
       line = f.readline()
   return trending_times
+
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
+def parse_edges_from_adj_list(path, max_neighbors = 1):
+  files = os.listdir(path)
+  edges = {}
+  scatter_counts = {}
+  for (fi, file) in enumerate(files):
+    if not re.match('part-.-[0-9]{5}',file):
+      print 'Filename', file, 'not valid data. Skipping...'
+      continue
+    if os.path.isdir(file):
+      print 'File', file, 'is directory. Skipping...'
+      continue
+    f = open(os.path.join(path,file), 'r')
+    line = f.readline()
+    while line:
+      fields = line_to_fields(line)
+      dst = fields[0]
+      topic = fields[1]
+
+      if topic not in edges:
+        edges[topic] = []
+
+      srcs_frags = line_to_fields(fields[2], delimiter='[()]')
+      misc_info = line_to_fields(srcs_frags[1], delimiter = ',',
+                                 newline_terminated = False)
+      time = long(misc_info[3])
+
+      num_neighbors_active = int(misc_info[0])
+      num_neighbors_total = int(misc_info[2])
+      if topic not in scatter_counts:
+        scatter_counts[topic] = [[],[]]
+      scatter_counts[topic][0].append(num_neighbors_active)
+      scatter_counts[topic][1].append(num_neighbors_total)
+
+      srcs = line_to_fields(srcs_frags[2], delimiter = ',',
+                            newline_terminated = False)
+      srcs = srcs[0:max_neighbors]
+      for src in srcs:
+        if src == '':
+          edges[topic].append((-1, dst, time))
+        else:
+          edges[topic].append((src, dst, time))
+
+      line = f.readline()
+  return (edges, scatter_counts)
+
+def parse_onset_offsets(path):
+  f = open(path, 'r')
+  line = f.readline()
+  topic_to_offset = {}
+  while line:
+    fields = line_to_fields(line)
+    topic = fields[0]
+    offset = float(fields[1]) / 3600.0
+    topic_to_offset[topic] = offset
+    line = f.readline()
+  return topic_to_offset

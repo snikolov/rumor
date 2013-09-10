@@ -509,7 +509,8 @@ def ts_balance_data(ts_info_pos_orig, ts_info_neg_orig):
   return ts_info_pos, ts_info_neg
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
+def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', alpha = 1,
+                 beta = 1):
   # TODO: This became really slow. Profile!!
   """
   if mode is 'offline':
@@ -538,7 +539,7 @@ def ts_normalize(ts_info_orig, ts_norm_func, mode = 'offline', beta = 1):
       norm_values = \
           [ ((v + 0.01) / (ts_norm + 0.01)) ** beta for v in ts.values ]
     #ts_info[topic]['ts'] = Timeseries(norm_times, norm_values)
-    ts_info[topic]['ts'] = Timeseries(norm_times, norm_values).ddt().abs().pow(1.2)
+    ts_info[topic]['ts'] = Timeseries(norm_times, norm_values).ddt().abs().pow(alpha)
     ts_info[topic]['trend_start'] = ts_info_orig[topic]['trend_start']
     ts_info[topic]['trend_end'] = ts_info_orig[topic]['trend_end']
   return ts_info
@@ -556,7 +557,7 @@ def ts_pnorm_func(p = 2):
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
 # Create timeseries bundles.
-def ts_bundle(ts_info, detection_window_time, w_smooth = 25):
+def ts_bundle(ts_info, detection_window_time, w_smooth = 25, logsc = True):
   bundle = {}
   # TODO should abstract away normalization.
   for topic in ts_info:
@@ -577,8 +578,10 @@ def ts_bundle(ts_info, detection_window_time, w_smooth = 25):
     smoothed = np.convolve(tsw.values, np.ones(w_smooth,),
                            mode = 'full')
     # TODO: some methods depend on this being the raw signal, not the log!
-    smoothed = [ log(v + 0.01) for v in smoothed[0:len(tsw.values)] ]
-    #smoothed = [ (v + 0.01) for v in smoothed[0:len(tsw.values)] ]
+    if logsc:
+      smoothed = [ log(v + 0.01) for v in smoothed[0:len(tsw.values)] ]
+    else:    
+      smoothed = [ (v + 0.01) for v in smoothed[0:len(tsw.values)] ]
     bundle[topic] = Timeseries(tsw.times, smoothed)
   return bundle
 
@@ -1179,28 +1182,29 @@ def ts_sample_topics(ts_info_orig, p_sample):
   return ts_info
 
 #=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~
-def viz_timeseries(ts_infos, normalize = True):
-  np.random.seed(2243626)
+def viz_timeseries(ts_infos, normalize = True, logsc = True):
+  #np.random.seed(2243626)
+
 
   plt.ion()
   plt.close('all')
   #colors = [(0,0,1), (1,0,0)]
-  colors = ['k', 'k']
+  colors = ['b', 'r']
   linestyles = ['-', '-']
-  linewidths = [1, 1.5]
+  linewidths = [0.5, 0.5]
   labels = ['$\mathcal{R}_+$', '$\mathcal{R}_-$']
 
   rand_colors = False
-  detection_window_time = 2 * 3600 * 1000
+  detection_window_time = 10 * 3600 * 1000
   #ts_norm_func = ts_mean_median_norm_func(1, 0)
   ts_norm_func = ts_pnorm_func(p = 1)
 
   bundles = {}
-  w_smooth = 50
+  w_smooth = 250
   fig = plt.figure()
   for (i, ts_info) in enumerate(ts_infos):
     # Sample
-    ts_info = ts_sample_topics(ts_info, 0.025)
+    ts_info = ts_sample_topics(ts_info, 0.5)
     
     """
     color = colors[i]
@@ -1222,11 +1226,12 @@ def viz_timeseries(ts_infos, normalize = True):
 
     # Normalize.
     if normalize:
-      ts_info = ts_normalize(ts_info, ts_norm_func, beta = 1)
+      ts_info = ts_normalize(ts_info, ts_norm_func, alpha = 2, beta = 1)
       
-    plot_raw = True
+    plot_raw = False
     if plot_raw:
       for t in ts_info:
+        print max(ts_info[t]['ts'].values)
         if max(ts_info[t]['ts'].values) < 100:
           continue
         times = np.array(ts_info[t]['ts'].times)
@@ -1238,9 +1243,11 @@ def viz_timeseries(ts_infos, normalize = True):
         raw_input()
 
     # Create bundles.
-    bundle = ts_bundle(ts_info, detection_window_time, w_smooth = w_smooth)
+    bundle = ts_bundle(ts_info, detection_window_time, w_smooth = w_smooth,
+                       logsc = logsc)
     bundles[i] = bundle
     # Plot.
+
     color = colors[i]
     for (ti, t) in enumerate(bundle):
       if rand_colors:
@@ -1248,19 +1255,48 @@ def viz_timeseries(ts_infos, normalize = True):
       label = None
       if ti == 0:
         label = labels[i]
-      plt.plot((np.array(bundle[t].times) - bundle[t].tmin) / (3600 * 1000.0),
-                   bundle[t].values, hold = 'on', linewidth = linewidths[i],
-                   color = color, linestyle = linestyles[i], label = label)
+      
+      # Hack to show only smooth ones
+      if ts_info[t]['trend_start'] < 1338537600000 and \
+            ts_info[t]['trend_start'] is not None:
+        continue
+
+      """  
+      if sum([ 1 for v in bundle[t].ddt().values if v == 0 ]) > 5:
+        continue
+      """
+      """
+      if sum(bundle[t].ddt().pow(2).values) > 5 and sum([ 1 for v in bundle[t].ddt().values if v == 0 ]) > 2:
+        continue
+      """
+      
+      times = [ (- v + bundle[t].tmin) / (3600 * 1000.0) for v in bundle[t].times ]
+      times.reverse()
+      plt.hold(True)
+      plt.plot(times,
+               bundle[t].values, linewidth = linewidths[i],
+               color = color, linestyle = linestyles[i], label = label)
+      plt.title(t)
+      #raw_input()
+      
       """
       plt.draw()
       plt.title(t)
       sleep(1)
       """
     plt.draw()
+    raw_input()
+
+  plt.title('Activity Signals (Trending and Nontrending)', size = 16)
+  plt.xlabel('Time (hours)', size = 16)
+  plt.ylabel('Activity Signal', size = 16)
+  #plt.gca().set_yticks([])
+  """
   plt.title('Reference Signals (Transformations: Spikes, Baseline, Log)')
   plt.xlabel('time (hours)')
   plt.ylabel('signal')
   #xplt.legend(loc = 2)
+  """
 
   plot_scatter = False
   if plot_scatter:
@@ -1313,12 +1349,52 @@ def build_gexf(edges, out_name, p_sample = 1):
     #d = datetime.datetime.fromtimestamp(int(time))    
     #date = d.isoformat()
     start = str(time)
-    if not graph.nodeExists(src):
-      graph.addNode(id = src, label = '', start = start, end = end)
-    if not graph.nodeExists(dst):
-      graph.addNode(id = dst, label = '', start = start, end = end)
-    graph.addEdge(id = str(src) + ',' + str(dst), source = src,
-                  target = dst, start = start, end = end)
-  out = open('data/graphs/' + out_name + '.gexf', 'w')
+    if src != -1:
+      if not graph.nodeExists(src) or start < graph._nodes[src].start:
+        graph.addNode(id = src, label = '', start = start, end = end)
+      if not graph.nodeExists(dst) or start < graph._nodes[dst].start:
+        graph.addNode(id = dst, label = '', start = start, end = end)
+      graph.addEdge(id = str(src) + ',' + str(dst), source = src,
+                    target = dst, start = start, end = end)
+    else:
+      if not graph.nodeExists(dst):
+        graph.addNode(id = dst, label = '', start = start, end = end)
+      
+  out = open('/Users/snikolov/projects/twesearch/data/graphs/' + out_name + '.gexf', 'w')
   gexf.write(out)
   out.close()
+
+def plot_implicit_edge_scatter(scatter_counts):
+  plt.ion()
+  allc0 = []
+  allc1 = []
+  for topic in scatter_counts:
+    c = scatter_counts[topic]
+
+    """
+    if len(c[0]) < 500:
+      continue
+    """
+    """
+    heatmap, xedges, yedges = np.histogram2d([log(v + 0.1) for v in c[1]],
+                                             [log(v + 0.1) for v in c[0]],
+                                             bins = 40)
+    extent = [yedges[0], yedges[-1], xedges[0], xedges[-1]]
+    plt.imshow(np.flipud(heatmap), extent = extent)
+    """
+    """
+    plt.loglog(c[1],c[0],marker='o',linestyle='none')
+    plt.title(topic)
+    plt.xlabel('# neighbors')
+    plt.ylabel('# active neighbors')
+    plt.draw()
+    print topic
+    raw_input()
+    """
+    allc0.extend(c[0])
+    allc1.extend(c[1])
+  plt.loglog(allc1, allc0, marker='o',linestyle='none')
+  plt.xlabel('# neighbors')
+  plt.ylabel('# active neighbors')
+  plt.title('All topics')
+  plt.draw()
